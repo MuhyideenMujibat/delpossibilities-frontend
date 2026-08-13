@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Mail } from 'lucide-react'
-import { apiFetch, resolveRole } from '../api'
+import { apiFetch, resolveRole, resolvePermissions } from '../api'
 import PasswordInput from '../components/PasswordInput'
 import AuthLayout, { AuthField } from '../components/auth/AuthLayout'
 
-function Login({ setToken, setRole }) {
+function Login({ setToken, setRole, setPermissions }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -33,12 +33,14 @@ function Login({ setToken, setRole }) {
 
       const data = await response.json()
       const role = await resolveRole(data.token, data)
+      const permissions = await resolvePermissions(data.token, data)
 
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setRole(role)
       localStorage.setItem('role', role || '')
-      navigate(role === 'admin' ? '/admin' : '/orders')
+      setPermissions(permissions)
+      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : '/orders')
     } catch {
       setError('Could not reach the server.')
     } finally {
@@ -49,6 +51,7 @@ function Login({ setToken, setRole }) {
   return (
     <AuthLayout
       title="Log In"
+      maxWidth="md"
       onSubmit={handleLogin}
       success={successMessage}
       error={error}

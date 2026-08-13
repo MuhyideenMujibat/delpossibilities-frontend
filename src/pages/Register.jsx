@@ -1,24 +1,29 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { User, Mail, Home, Phone } from 'lucide-react'
-import { apiFetch, resolveRole } from '../api'
+import { User, Mail, Home, Phone, ShieldCheck, ArrowLeft } from 'lucide-react'
+import { apiFetch, resolveRole, resolvePermissions } from '../api'
 import PasswordInput from '../components/PasswordInput'
 import AuthLayout, { AuthField } from '../components/auth/AuthLayout'
 
-function Register({ setToken, setRole }) {
+function Register({ setToken, setRole, setPermissions }) {
+  const [step, setStep] = useState('form')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [hostel, setHostel] = useState('')
   const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [resending, setResending] = useState(false)
   const navigate = useNavigate()
 
   const handleRegister = async (e) => {
     e.preventDefault()
     setError('')
+    setMessage('')
     setSubmitting(true)
 
     try {
@@ -34,47 +39,133 @@ function Register({ setToken, setRole }) {
         },
       })
 
+      const data = await response.json().catch(() => null)
+
       if (!response.ok) {
-        const data = await response.json().catch(() => null)
         setError(data?.message || 'Registration failed. Check your details.')
         return
       }
 
-      const data = await response.json()
-
-      if (data.token) {
-        const role = await resolveRole(data.token, data)
-        setToken(data.token)
-        localStorage.setItem('token', data.token)
-        setRole(role)
-        localStorage.setItem('role', role || '')
-        navigate(role === 'admin' ? '/admin' : '/orders')
-        return
-      }
-
-      const loginResponse = await apiFetch('/login', {
-        method: 'POST',
-        body: { email, password },
-      })
-
-      if (!loginResponse.ok) {
-        setError('Registered successfully, but automatic login failed. Please log in.')
-        navigate('/login')
-        return
-      }
-
-      const loginData = await loginResponse.json()
-      const role = await resolveRole(loginData.token, loginData)
-      setToken(loginData.token)
-      localStorage.setItem('token', loginData.token)
-      setRole(role)
-      localStorage.setItem('role', role || '')
-      navigate(role === 'admin' ? '/admin' : '/orders')
+      setOtp('')
+      setStep('otp')
     } catch {
       setError('Could not reach the server.')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleVerify = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+
+    try {
+      const response = await apiFetch('/register/verify', {
+        method: 'POST',
+        body: { email, otp },
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        const firstError = data?.errors ? Object.values(data.errors)[0]?.[0] : null
+        setError(firstError || data?.message || 'That code is invalid or has expired.')
+        return
+      }
+
+      const role = await resolveRole(data.token, data)
+      const permissions = await resolvePermissions(data.token, data)
+      setToken(data.token)
+      localStorage.setItem('token', data.token)
+      setRole(role)
+      localStorage.setItem('role', role || '')
+      setPermissions(permissions)
+      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : '/orders')
+    } catch {
+      setError('Could not reach the server.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setError('')
+    setMessage('')
+    setResending(true)
+
+    try {
+      const response = await apiFetch('/register/resend-otp', {
+        method: 'POST',
+        body: { email },
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setError(data?.message || 'Could not resend the code.')
+        return
+      }
+
+      setMessage(data?.message || 'A new code has been sent to your email.')
+    } catch {
+      setError('Could not reach the server.')
+    } finally {
+      setResending(false)
+    }
+  }
+
+  if (step === 'otp') {
+    return (
+      <AuthLayout
+        title="Verify Your Email"
+        description={`Enter the 6-digit code we sent to ${email}.`}
+        onSubmit={handleVerify}
+        success={message}
+        error={error}
+        footer={
+          <button
+            type="button"
+            onClick={() => {
+              setError('')
+              setMessage('')
+              setStep('form')
+            }}
+            className="inline-flex items-center gap-1.5 font-medium text-brand-teal hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+            Back to edit details
+          </button>
+        }
+      >
+        <AuthField
+          id="otp"
+          label="Verification Code"
+          icon={ShieldCheck}
+          type="text"
+          inputMode="numeric"
+          placeholder="123456"
+          maxLength={6}
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          autoComplete="one-time-code"
+          required
+        />
+
+        <button type="submit" disabled={submitting || otp.length !== 6} className="btn-primary mt-2">
+          {submitting ? 'Verifying…' : 'Verify & Create Account'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending}
+          className="btn-outline"
+        >
+          {resending ? 'Resending…' : 'Resend Code'}
+        </button>
+      </AuthLayout>
+    )
   }
 
   return (
@@ -171,7 +262,7 @@ function Register({ setToken, setRole }) {
       </div>
 
       <button type="submit" disabled={submitting} className="btn-primary mt-2">
-        {submitting ? 'Creating account…' : 'Register'}
+        {submitting ? 'Sending code…' : 'Register'}
       </button>
     </AuthLayout>
   )

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
+import { UserCircle } from 'lucide-react'
 import { apiFetch } from '../api'
 import CylinderImageUpload from '../CylinderImageUpload'
+import ChangePasswordForm from '../components/ChangePasswordForm'
+import PageHeader from '../components/PageHeader'
 
 function Profile({ token }) {
   const [loading, setLoading] = useState(true)
@@ -70,80 +73,87 @@ function Profile({ token }) {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-md">
-        <h2 className="mb-6 text-2xl font-semibold text-brand-navy">Profile</h2>
-        <p className="text-sm text-slate-500">Loading…</p>
+      <div className="mx-auto max-w-3xl">
+        <PageHeader title="Profile" subtitle="Manage your account details." icon={UserCircle} />
+        <div className="skeleton h-64 w-full" />
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <h2 className="mb-6 text-2xl font-semibold text-brand-navy">Profile</h2>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="Profile" subtitle="Manage your account details." icon={UserCircle} />
 
-      <div className="card mb-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="label-text" htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              disabled
-              className="input-field bg-slate-50 text-slate-500"
-            />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="card mb-6 lg:col-span-3 lg:mb-0">
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="label-text" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                disabled
+                className="input-field bg-slate-50 text-slate-500"
+              />
+            </div>
+
+            <div>
+              <label className="label-text" htmlFor="name">Full Name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="label-text" htmlFor="hostel">Hostel</label>
+              <input
+                id="hostel"
+                type="text"
+                value={hostel}
+                onChange={(e) => setHostel(e.target.value)}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="label-text" htmlFor="phone">Phone</label>
+              <input
+                id="phone"
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="input-field"
+              />
+            </div>
+
+            <button onClick={handleSubmit} disabled={saving} className="btn-primary">
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+
+            {message && <p className="alert-success">{message}</p>}
+            {error && <p className="alert-error">{error}</p>}
           </div>
-
-          <div>
-            <label className="label-text" htmlFor="name">Full Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div>
-            <label className="label-text" htmlFor="hostel">Hostel</label>
-            <input
-              id="hostel"
-              type="text"
-              value={hostel}
-              onChange={(e) => setHostel(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div>
-            <label className="label-text" htmlFor="phone">Phone</label>
-            <input
-              id="phone"
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <button onClick={handleSubmit} disabled={saving} className="btn-primary">
-            {saving ? 'Saving…' : 'Save Changes'}
-          </button>
-
-          {message && <p className="alert-success">{message}</p>}
-          {error && <p className="alert-error">{error}</p>}
         </div>
-      </div>
 
-      <div className="card">
-        <h3 className="mb-4 text-lg font-semibold text-brand-navy">Cylinder Image</h3>
-        <CylinderImageUpload
-          token={token}
-          initialImageUrl={cylinderImageUrl}
-          description="This image is used by default when you create an order."
-          onUploaded={setCylinderImageUrl}
-        />
+        <div className="card lg:col-span-2">
+          <h3 className="mb-4 text-lg font-semibold text-brand-navy">Cylinder Image</h3>
+          <CylinderImageUpload
+            token={token}
+            initialImageUrl={cylinderImageUrl}
+            description="This image is used by default when you create an order."
+            onUploaded={setCylinderImageUrl}
+          />
+        </div>
+
+        <div className="card lg:col-span-3">
+          <h3 className="mb-4 text-lg font-semibold text-brand-navy">Change Password</h3>
+          <ChangePasswordForm token={token} />
+        </div>
       </div>
     </div>
   )

@@ -10,6 +10,13 @@ function TopNav() {
           <span className="text-sm font-semibold text-brand-navy sm:text-base">D&apos;EL-POSSIBILITIES</span>
         </div>
 
+        <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
+          <a href="#home" className="hover:text-brand-teal">Home</a>
+          <a href="#gas-list" className="hover:text-brand-teal">Gas Sizes</a>
+          <a href="#about" className="hover:text-brand-teal">About Us</a>
+          <a href="#contact" className="hover:text-brand-teal">Contact Us</a>
+        </nav>
+
         <div className="flex items-center gap-2 sm:gap-3">
           <Link to="/login" className="btn-outline px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm">
             Log In
