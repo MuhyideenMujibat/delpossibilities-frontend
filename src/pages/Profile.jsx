@@ -4,6 +4,7 @@ import { apiFetch } from '../api'
 import CylinderImageUpload from '../CylinderImageUpload'
 import ChangePasswordForm from '../components/ChangePasswordForm'
 import PageHeader from '../components/PageHeader'
+import HostelSelect from '../HostelSelect'
 
 function Profile({ token }) {
   const [loading, setLoading] = useState(true)
@@ -111,13 +112,7 @@ function Profile({ token }) {
 
             <div>
               <label className="label-text" htmlFor="hostel">Hostel</label>
-              <input
-                id="hostel"
-                type="text"
-                value={hostel}
-                onChange={(e) => setHostel(e.target.value)}
-                className="input-field"
-              />
+              <HostelSelect id="hostel" value={hostel} onChange={(e) => setHostel(e.target.value)} />
             </div>
 
             <div>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusCircle, MapPin, Flame, Check, ImagePlus, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
+import { PlusCircle, MapPin, Flame, Check, ImagePlus, Camera, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
 import { apiFetch, formatNaira, resolveImageUrl } from '../api'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
+import HostelSelect from '../HostelSelect'
 import { useToast } from '../toastContext'
 
 const KG_PRESETS = [5, 10, 12.5, 15]
@@ -57,7 +58,8 @@ function CreateOrder({ token }) {
   const [step, setStep] = useState(0)
   const [kg, setKg] = useState('')
   const [customKg, setCustomKg] = useState(false)
-  const [hostelAddress, setHostelAddress] = useState('')
+  const [hostelName, setHostelName] = useState('')
+  const [roomDetails, setRoomDetails] = useState('')
   const [cylinderImage, setCylinderImage] = useState(null)
   const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [forSomeoneElse, setForSomeoneElse] = useState(false)
@@ -90,7 +92,7 @@ function CreateOrder({ token }) {
     apiFetch('/user', { token })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.hostel) setHostelAddress(data.hostel)
+        if (data?.hostel) setHostelName(data.hostel)
         if (data?.cylinder_image_url) setExistingImageUrl(data.cylinder_image_url)
       })
       .catch(() => {})
@@ -112,7 +114,10 @@ function CreateOrder({ token }) {
   // for — or overwrite — the requester's own saved default.
   const usableExistingImageUrl = forSomeoneElse ? null : existingImageUrl
   const hasImage = !!cylinderImage || !!usableExistingImageUrl
-  const addressValid = hostelAddress.trim().length > 0
+  // The hostel name (from the admin-managed list) and free-text block/room
+  // detail combine into the single address string the backend and rider see.
+  const hostelAddress = [hostelName, roomDetails.trim()].filter(Boolean).join(', ')
+  const addressValid = hostelName.trim().length > 0
   const canAdvance = [kgValid, hasImage, addressValid, true][step]
 
   const handleFileChange = (e) => {
@@ -306,13 +311,19 @@ function CreateOrder({ token }) {
             {imagePreview || usableExistingImageUrl ? (
               <div className="relative overflow-hidden rounded-xl border border-slate-200">
                 <img src={imagePreview || resolveImageUrl(usableExistingImageUrl)} alt="Cylinder" className="h-48 w-full object-cover" />
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/55 px-3 py-2 backdrop-blur-sm">
+                <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-between gap-2 bg-black/55 px-3 py-2 backdrop-blur-sm">
                   <span className="text-xs text-white">
                     {imagePreview ? (forSomeoneElse ? "Someone else's photo" : 'New photo') : 'Using your saved photo'}
                   </span>
-                  <div className="flex gap-2">
-                    <label className="cursor-pointer rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-white/30">
-                      Replace
+                  <div className="flex flex-wrap gap-1.5">
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-white/30">
+                      <Camera className="h-3 w-3" strokeWidth={2} />
+                      Camera
+                      <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                    </label>
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-white/30">
+                      <ImagePlus className="h-3 w-3" strokeWidth={2} />
+                      Gallery
                       <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                     </label>
                     {imagePreview && (
@@ -328,13 +339,18 @@ function CreateOrder({ token }) {
                 </div>
               </div>
             ) : (
-              <label className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 transition-colors hover:border-brand-teal hover:text-brand-teal">
-                <ImagePlus className="h-8 w-8" strokeWidth={1.6} />
-                <span className="text-sm font-medium">
-                  {forSomeoneElse ? "Tap to upload their cylinder's photo" : 'Tap to upload a photo'}
-                </span>
-                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 transition-colors hover:border-brand-teal hover:text-brand-teal">
+                  <Camera className="h-8 w-8" strokeWidth={1.6} />
+                  <span className="text-center text-sm font-medium">Take Photo</span>
+                  <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                </label>
+                <label className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 transition-colors hover:border-brand-teal hover:text-brand-teal">
+                  <ImagePlus className="h-8 w-8" strokeWidth={1.6} />
+                  <span className="text-center text-sm font-medium">Choose from Gallery</span>
+                  <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                </label>
+              </div>
             )}
 
             <p className="text-xs text-slate-400">
@@ -346,20 +362,25 @@ function CreateOrder({ token }) {
         )}
 
         {step === 2 && (
-          <div>
-            <label className="label-text" htmlFor="hostel-address">Hostel Address</label>
-            <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.8} />
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="label-text" htmlFor="hostel-name">Hostel</label>
+              <HostelSelect id="hostel-name" icon={MapPin} value={hostelName} onChange={(e) => setHostelName(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="label-text" htmlFor="room-details">Block / Room (optional)</label>
               <input
-                id="hostel-address"
+                id="room-details"
                 type="text"
-                placeholder="Hostel, Block, Room"
-                value={hostelAddress}
-                onChange={(e) => setHostelAddress(e.target.value)}
-                className="input-field pl-9"
+                placeholder="e.g. Block 2, Room 14"
+                value={roomDetails}
+                onChange={(e) => setRoomDetails(e.target.value)}
+                className="input-field"
               />
             </div>
-            <p className="mt-2 text-xs text-slate-400">This is exactly where we'll bring your refilled cylinder.</p>
+
+            <p className="text-xs text-slate-400">This is exactly where we'll bring your refilled cylinder.</p>
           </div>
         )}
 

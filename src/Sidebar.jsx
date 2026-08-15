@@ -14,6 +14,7 @@ import {
   Briefcase,
   ShieldCheck,
   Layers,
+  Building2,
   Menu,
   X,
 } from 'lucide-react'
@@ -37,6 +38,7 @@ const ADMIN_LINKS = [
   { to: '/admin/settings', label: 'Price Settings', icon: Tag, permission: 'manage_settings' },
   { to: '/admin/staff', label: 'Staff', icon: Briefcase, superAdminOnly: true },
   { to: '/admin/user-types', label: 'User Types', icon: Layers, superAdminOnly: true },
+  { to: '/admin/hostels', label: 'Hostels', icon: Building2, superAdminOnly: true },
   { to: '/admin/permissions', label: 'Permissions', icon: ShieldCheck, superAdminOnly: true },
 ]
 

@@ -20,6 +20,7 @@ import AdminStudentDetail from './pages/AdminStudentDetail'
 import AdminStaff from './pages/AdminStaff'
 import AdminPermissions from './pages/AdminPermissions'
 import AdminUserTypes from './pages/AdminUserTypes'
+import AdminHostels from './pages/AdminHostels'
 import Profile from './pages/Profile'
 import AdminProfile from './pages/AdminProfile'
 import Landing from './pages/Landing'
@@ -165,6 +166,7 @@ function App() {
             <Route path="/admin/staff" element={superAdminRoute(<AdminStaff token={token} />)} />
             <Route path="/admin/permissions" element={superAdminRoute(<AdminPermissions token={token} />)} />
             <Route path="/admin/user-types" element={superAdminRoute(<AdminUserTypes token={token} />)} />
+            <Route path="/admin/hostels" element={superAdminRoute(<AdminHostels token={token} />)} />
             <Route
               path="/admin/profile"
               element={

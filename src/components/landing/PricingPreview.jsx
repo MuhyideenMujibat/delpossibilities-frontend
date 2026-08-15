@@ -8,6 +8,7 @@ const SAMPLE_KG = 12.5
 
 function PricingPreview() {
   const [pricePerKg, setPricePerKg] = useState(null)
+  const [deliveryFee, setDeliveryFee] = useState(null)
   const [offer, setOffer] = useState(null)
 
   useEffect(() => {
@@ -16,14 +17,17 @@ function PricingPreview() {
     apiFetch('/price')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        const hasOffer = data?.offer_active && data?.offer_price_per_kg
-        if (!cancelled && hasOffer) {
+        if (cancelled || !data) return
+
+        if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFee(Number(data.delivery_fee))
+
+        const hasOffer = data.offer_active && data.offer_price_per_kg
+        if (hasOffer) {
           setOffer(data)
           setPricePerKg(Number(data.offer_price_per_kg))
           return
         }
-        const value = data?.price_per_kg
-        if (!cancelled && value !== undefined && value !== null) setPricePerKg(Number(value))
+        if (data.price_per_kg !== undefined && data.price_per_kg !== null) setPricePerKg(Number(data.price_per_kg))
       })
       .catch(() => {})
 
@@ -68,9 +72,18 @@ function PricingPreview() {
             </div>
           </div>
 
-          <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+          {deliveryFee !== null && (
+            <p className="mt-4 flex items-center justify-center">
+              <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" aria-hidden="true" />
+                + {formatNaira(deliveryFee)} delivery fee, added at checkout
+              </span>
+            </p>
+          )}
+
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
             <Scale className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Live price, pulled straight from Dellposs — no markup at checkout.
+            Live price, pulled straight from D&apos;EL-Possibilities — no markup at checkout.
           </p>
 
           <Link to="/register" className="btn-primary mt-6 w-full">

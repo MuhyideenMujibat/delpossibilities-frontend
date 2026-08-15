@@ -78,7 +78,7 @@ function Landing() {
       <section id="contact" className="bg-brand-navy">
         <div className="mx-auto max-w-6xl px-4 py-14 text-center sm:px-6 sm:py-20">
           <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-            Running out of gas? Let Dellposs handle the refill.
+            Running out of gas? Let D&apos;EL-Possibilities handle the refill.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
             Create an account, upload your cylinder, and order in under a minute.

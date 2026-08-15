@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import Reveal, { RevealItem } from '../motion/Reveal'
 import StatusBadge from '../../StatusBadge'
-import hero from '../../assets/hero.png'
+import hero from '../../assets/delpossibilitieslandingpage.jpeg'
 
 function Hero() {
   const shouldReduceMotion = useReducedMotion()
@@ -47,15 +47,13 @@ function Hero() {
         </div>
 
         <RevealItem as="div" className="relative flex-1">
-          <div className="rounded-2xl border border-white/10 bg-white/8 p-3 shadow-2xl shadow-black/40 backdrop-blur">
-            <motion.img
-              src={hero}
-              alt="Gas cylinder delivery"
-              className="mx-auto w-full max-w-md rounded-xl object-cover"
-              animate={shouldReduceMotion ? undefined : { y: [0, -10, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </div>
+          <motion.img
+            src={hero}
+            alt="Gas cylinder delivery"
+            className="mx-auto w-full max-w-md rounded-2xl object-cover drop-shadow-[0_25px_45px_rgba(0,0,0,0.45)]"
+            animate={shouldReduceMotion ? undefined : { y: [0, -10, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
 
           <motion.div
             className="absolute -bottom-4 left-2 w-56 rounded-xl border border-white/10 bg-[#081321]/95 p-4 text-white shadow-xl shadow-black/30 backdrop-blur sm:-left-6"

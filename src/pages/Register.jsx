@@ -4,6 +4,7 @@ import { User, Mail, Home, Phone, ShieldCheck, ArrowLeft } from 'lucide-react'
 import { apiFetch, resolveRole, resolvePermissions } from '../api'
 import PasswordInput from '../components/PasswordInput'
 import AuthLayout, { AuthField } from '../components/auth/AuthLayout'
+import HostelSelect from '../HostelSelect'
 
 function Register({ setToken, setRole, setPermissions }) {
   const [step, setStep] = useState('form')
@@ -237,16 +238,10 @@ function Register({ setToken, setRole, setPermissions }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <AuthField
-          id="hostel"
-          label="Hostel"
-          icon={Home}
-          placeholder="Hostel A"
-          value={hostel}
-          onChange={(e) => setHostel(e.target.value)}
-          autoComplete="address-line1"
-          required
-        />
+        <div>
+          <label className="label-text" htmlFor="hostel">Hostel</label>
+          <HostelSelect id="hostel" icon={Home} value={hostel} onChange={(e) => setHostel(e.target.value)} required />
+        </div>
 
         <AuthField
           id="phone"
