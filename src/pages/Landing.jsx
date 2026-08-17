@@ -10,14 +10,11 @@ import TrustSection from '../components/landing/TrustSection'
 import TrackingPreview from '../components/landing/TrackingPreview'
 
 const GAS_SIZES = [
-  { size: '0.5 kg', note: 'Small top-up' },
-  { size: '1 kg', note: 'Quick refill' },
-  { size: '1.5 kg', note: 'Flexible refill' },
   { size: '3 kg', note: 'Portable cylinder' },
-  { size: '5 kg', note: 'Common student size' },
-  { size: '6 kg', note: 'Medium refill' },
+  // { size: '5 kg', note: 'Common student size' },
+  { size: '6 kg', note: 'Common student size' },
   { size: '10 kg', note: 'Family-size cylinder' },
-  { size: '12.5 kg', note: 'Full home cylinder' },
+  { size: '12 kg', note: 'Full home cylinder' },
 ]
 
 function Landing() {
@@ -33,11 +30,32 @@ function Landing() {
             <p className="eyebrow">Who we are</p>
             <h2 className="mt-2 font-heading text-3xl font-bold text-brand-navy sm:text-4xl">No more carrying cylinders across campus</h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              D&apos;EL-Possibilities Nig Limited is based in Ilorin, Kwara State, proudly serving the University
-              of Ilorin (Unilorin) student community. We take the stress out of gas cylinder refills by handling
-              pickup, refilling, cleaning, and delivery — transparent pricing, no unnecessary trips, no heavy
-              lifting.
-            </p>
+  D&apos;EL-Possibilities Nig Limited is based in Ilorin, Kwara State, proudly serving the University
+  of Ilorin (Unilorin) student community. We take the stress out of gas cylinder refills by handling
+  pickup, refilling, cleaning, and delivery.
+</p>
+
+<div className="mx-auto mt-5 grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-6">
+  <span className="inline-flex items-center justify-center rounded-full border border-brand-teal/20 bg-brand-teal/5 px-3 py-1.5 text-sm font-medium text-brand-teal sm:col-span-2">
+    ✓ Transparent pricing
+  </span>
+
+  <span className="inline-flex items-center justify-center rounded-full border border-brand-ember/20 bg-brand-ember/5 px-3 py-1.5 text-sm font-medium text-brand-ember sm:col-span-2">
+    ✓ No unnecessary trips
+  </span>
+
+  <span className="inline-flex items-center justify-center rounded-full border border-brand-navy/15 bg-brand-navy/5 px-3 py-1.5 text-sm font-medium text-brand-navy sm:col-span-2">
+    ✓ No heavy lifting
+  </span>
+
+  <span className="inline-flex items-center justify-center rounded-full border border-brand-teal/20 bg-brand-teal/5 px-3 py-1.5 text-sm font-medium text-brand-teal sm:col-span-3">
+    ✓ No queues
+  </span>
+
+  <span className="inline-flex items-center justify-center rounded-full border border-brand-ember/20 bg-brand-ember/5 px-3 py-1.5 text-sm font-medium text-brand-ember sm:col-span-3">
+    ✓ No station visits
+  </span>
+</div>
           </div>
         </div>
       </section>
@@ -58,7 +76,7 @@ function Landing() {
             </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-2">
             {GAS_SIZES.map((item) => (
               <div key={item.size} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50">
                 <p className="text-2xl font-bold text-brand-navy">{item.size}</p>
@@ -121,8 +139,9 @@ function Landing() {
           <div>
             <h3 className="font-semibold text-brand-navy">Pages</h3>
             <div className="mt-3 flex flex-col gap-2 text-sm text-slate-500">
-              <a href="#home" className="hover:text-brand-teal">Home</a>
-              <a href="#gas-list" className="hover:text-brand-teal">Gas Sizes</a>
+              <a href="#
+              " className="hover:text-brand-teal">Home</a>
+              <a href="#gas-list" className="hover:text-brand-teal">Our Services</a>
               <a href="#about" className="hover:text-brand-teal">About Us</a>
               <a href="#contact" className="hover:text-brand-teal">Contact Us</a>
             </div>

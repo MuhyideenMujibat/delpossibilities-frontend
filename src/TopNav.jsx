@@ -12,7 +12,7 @@ function TopNav() {
 
         <nav className="hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
           <a href="#home" className="hover:text-brand-teal">Home</a>
-          <a href="#gas-list" className="hover:text-brand-teal">Gas Sizes</a>
+          <a href="#services" className="hover:text-brand-teal">Our Services</a>
           <a href="#about" className="hover:text-brand-teal">About Us</a>
           <a href="#contact" className="hover:text-brand-teal">Contact Us</a>
         </nav>

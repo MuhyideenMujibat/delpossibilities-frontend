@@ -4,7 +4,7 @@ import { Scale, X, Equal } from 'lucide-react'
 import { apiFetch, formatNaira } from '../../api'
 import Reveal from '../motion/Reveal'
 
-const SAMPLE_KG = 12.5
+const SAMPLE_KG = 12
 
 function PricingPreview() {
   const [pricePerKg, setPricePerKg] = useState(null)
@@ -42,7 +42,7 @@ function PricingPreview() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="eyebrow">Pricing</p>
           <h2 className="mt-2 font-heading text-2xl font-bold text-brand-navy sm:text-3xl">One rate. No haggling.</h2>
-          <p className="mt-3 text-base text-slate-600">Your total is always kg × the current price per kg — shown before you pay, every time.</p>
+          <p className="mt-3 text-base text-slate-600">Your total is always kg × the current price per kg, shown before you pay, every time.</p>
           {offer && (
             <p className="mt-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-brand-teal">
               {offer.offer_title || 'Active refill offer'}: {formatNaira(offer.offer_price_per_kg)} per kg

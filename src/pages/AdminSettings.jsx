@@ -197,7 +197,7 @@ function AdminSettings({ token }) {
               </div>
             </div>
 
-            <div className="mt-4">
+            {/* <div className="mt-4">
               <label className="label-text" htmlFor="offer-message">Broadcast message</label>
               <textarea
                 id="offer-message"
@@ -207,7 +207,7 @@ function AdminSettings({ token }) {
                 onChange={(e) => setOfferMessage(e.target.value)}
                 className="input-field min-h-28 resize-y"
               />
-            </div>
+            </div> */}
           </div>
 
           <button onClick={handleSubmit} disabled={saving} className="btn-primary">
@@ -215,10 +215,10 @@ function AdminSettings({ token }) {
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
 
-          <button onClick={handleBroadcast} disabled={broadcasting} className="btn-outline">
+          {/* <button onClick={handleBroadcast} disabled={broadcasting} className="btn-outline">
             {broadcasting ? <Megaphone className="h-4 w-4" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} />}
             {broadcasting ? 'Sending broadcast…' : 'Send Offer Broadcast'}
-          </button>
+          </button> */}
 
           {message && <p className="alert-success">{message}</p>}
           {broadcastMessage && <p className="alert-success">{broadcastMessage}</p>}
