@@ -200,11 +200,11 @@ function AdminReports({ token }) {
           <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="panel-card p-5 pt-7 lg:col-span-2">
               <h3 className="mb-4 font-heading text-sm font-bold text-brand-navy">Daily revenue</h3>
-              <div className="flex h-40 items-end gap-1">
+              <div className="flex h-40 gap-1">
                 {series.map((point) => (
                   <div key={point.date} className="group relative flex-1">
                     <div
-                      className="w-full rounded-t bg-brand-teal/80 transition-colors group-hover:bg-brand-teal"
+                      className="absolute inset-x-0 bottom-0 rounded-t bg-brand-teal/80 transition-colors group-hover:bg-brand-teal"
                       style={{ height: `${Math.max(4, (point.revenue / seriesMax) * 100)}%` }}
                     />
                     <div className="figure pointer-events-none absolute -top-9 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-brand-navy px-2 py-1 text-[10px] text-white group-hover:block">

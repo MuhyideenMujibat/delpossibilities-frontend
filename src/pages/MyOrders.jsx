@@ -158,7 +158,12 @@ function MyOrders({ token }) {
                   <tr key={order.id} onClick={() => navigate(`/orders/${order.id}`)} className="cursor-pointer hover:bg-slate-50/70">
                     <td className="figure px-4 py-3 font-medium text-brand-navy">{order.kg} kg</td>
                     <td className="max-w-[220px] truncate px-4 py-3 text-slate-600">{order.hostel_address}</td>
-                    <td className="figure px-4 py-3 font-medium text-brand-navy">{formatNaira(order.total_amount)}</td>
+                    <td className="px-4 py-3">
+                      <span className="figure font-medium text-brand-navy">{formatNaira(order.total_amount)}</span>
+                      {order.loyalty_discount_applied && (
+                        <span className="ml-1.5 inline-block rounded-full bg-brand-teal/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-teal">Loyalty</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={order.status} label={STATUS_LABELS[order.status] || order.status} />
                     </td>
@@ -193,7 +198,12 @@ function MyOrders({ token }) {
                 </div>
                 <p className="mt-1 truncate text-sm text-slate-500">{order.hostel_address}</p>
                 <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
-                  <span className="figure font-medium">{formatNaira(order.total_amount)}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="figure font-medium">{formatNaira(order.total_amount)}</span>
+                    {order.loyalty_discount_applied && (
+                      <span className="inline-block rounded-full bg-brand-teal/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-teal">Loyalty</span>
+                    )}
+                  </span>
                   <span className="text-xs text-slate-400">{formatDate(order.created_at)}</span>
                 </div>
 

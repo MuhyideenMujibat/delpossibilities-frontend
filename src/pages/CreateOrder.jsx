@@ -5,6 +5,7 @@ import { apiFetch, formatNaira, resolveImageUrl } from '../api'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import HostelSelect from '../HostelSelect'
+import LocationTypeToggle from '../components/LocationTypeToggle'
 import { useToast } from '../toastContext'
 
 const KG_PRESETS = [5, 10, 12.5, 15]
@@ -58,14 +59,21 @@ function CreateOrder({ token }) {
   const [step, setStep] = useState(0)
   const [kg, setKg] = useState('')
   const [customKg, setCustomKg] = useState(false)
+  const [locationType, setLocationType] = useState('hostel')
   const [hostelName, setHostelName] = useState('')
   const [roomDetails, setRoomDetails] = useState('')
+  const [offCampusAddress, setOffCampusAddress] = useState('')
   const [cylinderImage, setCylinderImage] = useState(null)
   const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [forSomeoneElse, setForSomeoneElse] = useState(false)
   const [pricePerKg, setPricePerKg] = useState(null)
-  const [deliveryFee, setDeliveryFee] = useState(0)
+  const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(0)
+  const [deliveryFeeOffCampus, setDeliveryFeeOffCampus] = useState(0)
   const [offer, setOffer] = useState(null)
+  const [loyalty, setLoyalty] = useState(null)
+  const [loyaltyProgressKg, setLoyaltyProgressKg] = useState(0)
+  const [loyaltyRewardAvailable, setLoyaltyRewardAvailable] = useState(false)
+  const [loyaltyKgToNextReward, setLoyaltyKgToNextReward] = useState(null)
   const [error, setError] = useState('')
   const [needsProfileImage, setNeedsProfileImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -75,7 +83,10 @@ function CreateOrder({ token }) {
     apiFetch('/price')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.delivery_fee !== undefined && data?.delivery_fee !== null) setDeliveryFee(Number(data.delivery_fee))
+        if (data?.delivery_fee !== undefined && data?.delivery_fee !== null) setDeliveryFeeHostel(Number(data.delivery_fee))
+        if (data?.off_campus_delivery_fee !== undefined && data?.off_campus_delivery_fee !== null) {
+          setDeliveryFeeOffCampus(Number(data.off_campus_delivery_fee))
+        }
 
         const activeOffer = data?.offer_active && data?.offer_price_per_kg
         if (activeOffer) {
@@ -84,6 +95,13 @@ function CreateOrder({ token }) {
           return
         }
         if (data?.price_per_kg !== undefined && data?.price_per_kg !== null) setPricePerKg(Number(data.price_per_kg))
+
+        if (data?.loyalty_enabled && data?.loyalty_threshold_kg && data?.loyalty_discount_percent) {
+          setLoyalty({
+            thresholdKg: Number(data.loyalty_threshold_kg),
+            discountPercent: Number(data.loyalty_discount_percent),
+          })
+        }
       })
       .catch(() => {})
   }, [])
@@ -92,8 +110,20 @@ function CreateOrder({ token }) {
     apiFetch('/user', { token })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.hostel) setHostelName(data.hostel)
+        const type = data?.location_type || 'hostel'
+        setLocationType(type)
+        if (data?.hostel) {
+          if (type === 'off_campus') setOffCampusAddress(data.hostel)
+          else setHostelName(data.hostel)
+        }
         if (data?.cylinder_image_url) setExistingImageUrl(data.cylinder_image_url)
+        setLoyaltyProgressKg(Number(data?.loyalty_progress_kg || 0))
+        setLoyaltyRewardAvailable(Boolean(data?.loyalty_reward_available))
+        setLoyaltyKgToNextReward(
+          data?.loyalty_kg_to_next_reward !== null && data?.loyalty_kg_to_next_reward !== undefined
+            ? Number(data.loyalty_kg_to_next_reward)
+            : null
+        )
       })
       .catch(() => {})
   }, [token])
@@ -108,16 +138,23 @@ function CreateOrder({ token }) {
 
   const kgValue = Number(kg)
   const kgValid = kg !== '' && !Number.isNaN(kgValue) && kgValue > 0
+  const deliveryFee = locationType === 'off_campus' ? deliveryFeeOffCampus : deliveryFeeHostel
   const gasCost = pricePerKg !== null && kgValid ? pricePerKg * kgValue : null
-  const total = gasCost !== null ? gasCost + deliveryFee : null
+  const loyaltyDiscount = loyaltyRewardAvailable && loyalty && gasCost !== null
+    ? gasCost * (loyalty.discountPercent / 100)
+    : 0
+  const total = gasCost !== null ? gasCost - loyaltyDiscount + deliveryFee : null
   // Ordering for someone else means their cylinder photo shouldn't stand in
   // for — or overwrite — the requester's own saved default.
   const usableExistingImageUrl = forSomeoneElse ? null : existingImageUrl
   const hasImage = !!cylinderImage || !!usableExistingImageUrl
-  // The hostel name (from the admin-managed list) and free-text block/room
-  // detail combine into the single address string the backend and rider see.
-  const hostelAddress = [hostelName, roomDetails.trim()].filter(Boolean).join(', ')
-  const addressValid = hostelName.trim().length > 0
+  // On campus: the hostel name (from the admin-managed list) and free-text
+  // block/room detail combine into the address string the backend and rider
+  // see. Off campus: the student's own typed address is used as-is.
+  const hostelAddress = locationType === 'hostel'
+    ? [hostelName, roomDetails.trim()].filter(Boolean).join(', ')
+    : offCampusAddress.trim()
+  const addressValid = locationType === 'hostel' ? hostelName.trim().length > 0 : offCampusAddress.trim().length > 0
   const canAdvance = [kgValid, hasImage, addressValid, true][step]
 
   const handleFileChange = (e) => {
@@ -137,6 +174,7 @@ function CreateOrder({ token }) {
 
     const formData = new FormData()
     formData.append('kg', kg)
+    formData.append('location_type', locationType)
     formData.append('hostel_address', hostelAddress)
     if (imageFile) {
       formData.append('cylinder_image', imageFile)
@@ -262,6 +300,35 @@ function CreateOrder({ token }) {
               </div>
             </div>
 
+            {loyalty && (
+              loyaltyRewardAvailable ? (
+                <div className="rounded-xl bg-brand-teal/10 px-4 py-3 text-sm text-brand-teal">
+                  <p className="font-semibold">🎉 Loyalty discount unlocked!</p>
+                  <p className="mt-0.5 text-xs text-brand-teal/80">
+                    {loyalty.discountPercent}% off this order — your count then resets so you can earn the next one.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-brand-bg px-4 py-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between">
+                    <span>Loyalty progress</span>
+                    <span className="figure font-medium text-brand-navy">
+                      {loyaltyProgressKg} / {loyalty.thresholdKg} kg
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="h-full rounded-full bg-brand-teal"
+                      style={{ width: `${Math.min(100, (loyaltyProgressKg / loyalty.thresholdKg) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {loyaltyKgToNextReward} kg more to unlock {loyalty.discountPercent}% off your next order.
+                  </p>
+                </div>
+              )
+            )}
+
             {pricePerKg !== null && (
               <div className="rounded-xl bg-brand-bg px-4 py-3 text-sm">
                 {offer && (
@@ -278,6 +345,12 @@ function CreateOrder({ token }) {
                   <span className="text-slate-500">Gas cost{kgValid ? ` (${kg} kg)` : ''}</span>
                   <span className="figure font-medium text-brand-navy">{gasCost !== null ? formatNaira(gasCost) : '—'}</span>
                 </div>
+                {loyaltyDiscount > 0 && (
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-brand-teal">Loyalty discount</span>
+                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(loyaltyDiscount)}</span>
+                  </div>
+                )}
                 <div className="mt-1 flex items-center justify-between">
                   <span className="text-slate-500">Delivery fee</span>
                   <span className="figure font-medium text-brand-navy">{formatNaira(deliveryFee)}</span>
@@ -364,21 +437,46 @@ function CreateOrder({ token }) {
         {step === 2 && (
           <div className="flex flex-col gap-4">
             <div>
-              <label className="label-text" htmlFor="hostel-name">Hostel</label>
-              <HostelSelect id="hostel-name" icon={MapPin} value={hostelName} onChange={(e) => setHostelName(e.target.value)} required />
+              <label className="label-text">Delivery Location</label>
+              <LocationTypeToggle value={locationType} onChange={setLocationType} className="mb-3" />
             </div>
 
-            <div>
-              <label className="label-text" htmlFor="room-details">Block / Room (optional)</label>
-              <input
-                id="room-details"
-                type="text"
-                placeholder="e.g. Block 2, Room 14"
-                value={roomDetails}
-                onChange={(e) => setRoomDetails(e.target.value)}
-                className="input-field"
-              />
-            </div>
+            {locationType === 'hostel' ? (
+              <>
+                <div>
+                  <label className="label-text" htmlFor="hostel-name">Hostel</label>
+                  <HostelSelect id="hostel-name" icon={MapPin} value={hostelName} onChange={(e) => setHostelName(e.target.value)} required />
+                </div>
+
+                <div>
+                  <label className="label-text" htmlFor="room-details">Block / Room (optional)</label>
+                  <input
+                    id="room-details"
+                    type="text"
+                    placeholder="e.g. Block 2, Room 14"
+                    value={roomDetails}
+                    onChange={(e) => setRoomDetails(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="label-text" htmlFor="off-campus-address">Delivery address</label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" strokeWidth={1.8} aria-hidden="true" />
+                  <textarea
+                    id="off-campus-address"
+                    placeholder="e.g. 12 Adeola Street, Yaba, Lagos"
+                    value={offCampusAddress}
+                    onChange={(e) => setOffCampusAddress(e.target.value)}
+                    rows={3}
+                    required
+                    className="input-field min-h-[5.5rem] resize-y pl-9"
+                  />
+                </div>
+              </div>
+            )}
 
             <p className="text-xs text-slate-400">This is exactly where we'll bring your refilled cylinder.</p>
           </div>
@@ -406,6 +504,12 @@ function CreateOrder({ token }) {
                   <span className="text-slate-500">Gas cost</span>
                   <span className="figure font-medium text-brand-navy">{gasCost !== null ? formatNaira(gasCost) : '—'}</span>
                 </div>
+                {loyaltyDiscount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-brand-teal">Loyalty discount</span>
+                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(loyaltyDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Delivery fee</span>
                   <span className="figure font-medium text-brand-navy">{formatNaira(deliveryFee)}</span>

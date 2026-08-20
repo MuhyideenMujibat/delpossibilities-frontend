@@ -96,7 +96,12 @@ function AdminOrderDrawer({ order, onClose, onAdvance, updating, nextStatus }) {
                   <MapPin className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.8} />
                   Delivery address
                 </span>
-                <span className="text-right text-slate-700">{order.hostel_address}</span>
+                <span className="text-right text-slate-700">
+                  {order.location_type === 'off_campus' && (
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-brand-ember">Off-campus</span>
+                  )}
+                  {order.hostel_address}
+                </span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-100 pt-3">
                 <span className="text-slate-500">Placed</span>

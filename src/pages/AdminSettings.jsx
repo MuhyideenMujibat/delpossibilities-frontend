@@ -7,10 +7,14 @@ function AdminSettings({ token }) {
   const [price, setPrice] = useState(null)
   const [newPrice, setNewPrice] = useState('')
   const [deliveryFee, setDeliveryFee] = useState('')
+  const [offCampusDeliveryFee, setOffCampusDeliveryFee] = useState('')
   const [offerActive, setOfferActive] = useState(false)
   const [offerTitle, setOfferTitle] = useState('')
   const [offerMessage, setOfferMessage] = useState('')
   const [offerPrice, setOfferPrice] = useState('')
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false)
+  const [loyaltyThresholdKg, setLoyaltyThresholdKg] = useState('')
+  const [loyaltyDiscountPercent, setLoyaltyDiscountPercent] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [broadcastMessage, setBroadcastMessage] = useState('')
@@ -32,10 +36,14 @@ function AdminSettings({ token }) {
         setPrice(currentPrice)
         setNewPrice(currentPrice ?? '')
         setDeliveryFee(data.delivery_fee ?? data.data?.delivery_fee ?? '')
+        setOffCampusDeliveryFee(data.off_campus_delivery_fee ?? data.data?.off_campus_delivery_fee ?? '')
         setOfferActive(Boolean(data.offer_active))
         setOfferTitle(data.offer_title || '')
         setOfferMessage(data.offer_message || '')
         setOfferPrice(data.offer_price_per_kg || '')
+        setLoyaltyEnabled(Boolean(data.loyalty_enabled))
+        setLoyaltyThresholdKg(data.loyalty_threshold_kg || '')
+        setLoyaltyDiscountPercent(data.loyalty_discount_percent || '')
       } catch {
         setError('Could not reach the server.')
       }
@@ -56,10 +64,14 @@ function AdminSettings({ token }) {
         body: {
           price_per_kg: newPrice,
           delivery_fee: deliveryFee || 0,
+          off_campus_delivery_fee: offCampusDeliveryFee || 0,
           offer_active: offerActive,
           offer_title: offerTitle,
           offer_message: offerMessage,
           offer_price_per_kg: offerPrice || null,
+          loyalty_enabled: loyaltyEnabled,
+          loyalty_threshold_kg: loyaltyThresholdKg || null,
+          loyalty_discount_percent: loyaltyDiscountPercent || null,
         },
       })
 
@@ -74,10 +86,14 @@ function AdminSettings({ token }) {
       setPrice(updatedPrice)
       setNewPrice(updatedPrice)
       setDeliveryFee(data.delivery_fee ?? data.data?.delivery_fee ?? deliveryFee)
+      setOffCampusDeliveryFee(data.off_campus_delivery_fee ?? data.data?.off_campus_delivery_fee ?? offCampusDeliveryFee)
       setOfferActive(Boolean(data.offer_active))
       setOfferTitle(data.offer_title || '')
       setOfferMessage(data.offer_message || '')
       setOfferPrice(data.offer_price_per_kg || '')
+      setLoyaltyEnabled(Boolean(data.loyalty_enabled))
+      setLoyaltyThresholdKg(data.loyalty_threshold_kg || '')
+      setLoyaltyDiscountPercent(data.loyalty_discount_percent || '')
       setMessage('Settings updated successfully.')
     } catch {
       setError('Could not reach the server.')
@@ -126,7 +142,8 @@ function AdminSettings({ token }) {
             {offerActive && offerPrice && (
               <p className="mt-2 text-sm text-white/75">Active offer: {formatNaira(offerPrice)} / kg</p>
             )}
-            <p className="mt-2 text-sm text-white/75">Delivery fee: {formatNaira(deliveryFee || 0)}</p>
+            <p className="mt-2 text-sm text-white/75">On-campus delivery: {formatNaira(deliveryFee || 0)}</p>
+            <p className="mt-1 text-sm text-white/75">Off-campus delivery: {formatNaira(offCampusDeliveryFee || 0)}</p>
           </div>
         )}
 
@@ -145,7 +162,7 @@ function AdminSettings({ token }) {
             </div>
 
             <div>
-              <label className="label-text" htmlFor="delivery-fee">Delivery Fee (flat, added to every order)</label>
+              <label className="label-text" htmlFor="delivery-fee">On-Campus Delivery Fee (flat)</label>
               <input
                 id="delivery-fee"
                 type="number"
@@ -153,6 +170,19 @@ function AdminSettings({ token }) {
                 min="0"
                 value={deliveryFee}
                 onChange={(e) => setDeliveryFee(e.target.value)}
+                className="input-field"
+              />
+            </div>
+
+            <div>
+              <label className="label-text" htmlFor="off-campus-delivery-fee">Off-Campus Delivery Fee (flat)</label>
+              <input
+                id="off-campus-delivery-fee"
+                type="number"
+                placeholder="e.g. 800"
+                min="0"
+                value={offCampusDeliveryFee}
+                onChange={(e) => setOffCampusDeliveryFee(e.target.value)}
                 className="input-field"
               />
             </div>
@@ -208,6 +238,54 @@ function AdminSettings({ token }) {
                 className="input-field min-h-28 resize-y"
               />
             </div> */}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={loyaltyEnabled}
+                onChange={(e) => setLoyaltyEnabled(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-teal"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-brand-navy">Enable loyalty discount</span>
+                <span className="block text-sm text-slate-500">
+                  Once a student's cumulative refill kg reaches the threshold below, their next order automatically
+                  gets the discount applied — their count then resets to 0 so they build up toward the next reward.
+                </span>
+              </span>
+            </label>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label-text" htmlFor="loyalty-threshold">Kg required to unlock reward</label>
+                <input
+                  id="loyalty-threshold"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="e.g. 50"
+                  value={loyaltyThresholdKg}
+                  onChange={(e) => setLoyaltyThresholdKg(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="label-text" htmlFor="loyalty-discount">Discount when unlocked (%)</label>
+                <input
+                  id="loyalty-discount"
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  placeholder="e.g. 10"
+                  value={loyaltyDiscountPercent}
+                  onChange={(e) => setLoyaltyDiscountPercent(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+            </div>
           </div>
 
           <button onClick={handleSubmit} disabled={saving} className="btn-primary">

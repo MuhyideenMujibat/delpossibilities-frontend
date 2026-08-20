@@ -32,7 +32,8 @@ function ForgotPassword() {
       const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(data?.message || 'Could not send the code.')
+        const firstError = data?.errors ? Object.values(data.errors)[0]?.[0] : null
+        setError(firstError || data?.message || 'Could not send the code.')
         return
       }
 
@@ -59,7 +60,8 @@ function ForgotPassword() {
       const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(data?.message || 'Could not resend the code.')
+        const firstError = data?.errors ? Object.values(data.errors)[0]?.[0] : null
+        setError(firstError || data?.message || 'Could not resend the code.')
         return
       }
 

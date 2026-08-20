@@ -1,12 +1,22 @@
 import { Search, X } from 'lucide-react'
 import { STATUS_OPTIONS } from '../api'
+import { useHostels } from '../hooks/useHostels'
 
-const EMPTY_FILTERS = { search: '', status: 'all', from: '', to: '' }
+const EMPTY_FILTERS = { search: '', status: 'all', hostel: 'all', from: '', to: '' }
 
 export { EMPTY_FILTERS }
 
-function OrderFilters({ filters, onChange, searchPlaceholder = 'Search…', resultCount, totalCount, statusOptions = STATUS_OPTIONS }) {
-  const isActive = filters.search || filters.status !== 'all' || filters.from || filters.to
+function OrderFilters({
+  filters,
+  onChange,
+  searchPlaceholder = 'Search…',
+  resultCount,
+  totalCount,
+  statusOptions = STATUS_OPTIONS,
+  showHostelFilter = false,
+}) {
+  const { hostels } = useHostels()
+  const isActive = filters.search || filters.status !== 'all' || (filters.hostel && filters.hostel !== 'all') || filters.from || filters.to
 
   const set = (patch) => onChange({ ...filters, ...patch })
 
@@ -34,6 +44,23 @@ function OrderFilters({ filters, onChange, searchPlaceholder = 'Search…', resu
           </option>
         ))}
       </select>
+
+      {showHostelFilter && (
+        <select
+          value={filters.hostel || 'all'}
+          onChange={(e) => set({ hostel: e.target.value })}
+          className="filter-field sm:w-52"
+          aria-label="Filter by hostel"
+        >
+          <option value="all">All hostels</option>
+          <option value="off_campus">Off-campus</option>
+          {hostels.map((hostel) => (
+            <option key={hostel.id} value={hostel.name}>
+              {hostel.name}
+            </option>
+          ))}
+        </select>
+      )}
 
       <div className="flex items-center gap-2">
         <input

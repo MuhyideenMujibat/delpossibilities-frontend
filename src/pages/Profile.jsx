@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
-import { UserCircle } from 'lucide-react'
+import { UserCircle, MapPin } from 'lucide-react'
 import { apiFetch } from '../api'
 import CylinderImageUpload from '../CylinderImageUpload'
 import ChangePasswordForm from '../components/ChangePasswordForm'
 import PageHeader from '../components/PageHeader'
 import HostelSelect from '../HostelSelect'
+import LocationTypeToggle from '../components/LocationTypeToggle'
 
 function Profile({ token }) {
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [locationType, setLocationType] = useState('hostel')
   const [hostel, setHostel] = useState('')
+  const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [cylinderImageUrl, setCylinderImageUrl] = useState(null)
   const [error, setError] = useState('')
@@ -27,9 +30,12 @@ function Profile({ token }) {
         }
 
         const data = await response.json()
+        const type = data.location_type || 'hostel'
         setEmail(data.email || '')
         setName(data.name || '')
-        setHostel(data.hostel || '')
+        setLocationType(type)
+        if (type === 'off_campus') setAddress(data.hostel || '')
+        else setHostel(data.hostel || '')
         setPhone(data.phone || '')
         setCylinderImageUrl(data.cylinder_image_url || null)
       } catch {
@@ -51,7 +57,12 @@ function Profile({ token }) {
       const response = await apiFetch('/profile', {
         method: 'PATCH',
         token,
-        body: { name, hostel, phone },
+        body: {
+          name,
+          location_type: locationType,
+          hostel: locationType === 'hostel' ? hostel : address,
+          phone,
+        },
       })
 
       if (!response.ok) {
@@ -62,7 +73,9 @@ function Profile({ token }) {
 
       const data = await response.json()
       setName(data.name ?? name)
-      setHostel(data.hostel ?? hostel)
+      setLocationType(data.location_type ?? locationType)
+      if (locationType === 'off_campus') setAddress(data.hostel ?? address)
+      else setHostel(data.hostel ?? hostel)
       setPhone(data.phone ?? phone)
       setMessage('Profile updated successfully!')
     } catch {
@@ -111,8 +124,24 @@ function Profile({ token }) {
             </div>
 
             <div>
-              <label className="label-text" htmlFor="hostel">Hostel</label>
-              <HostelSelect id="hostel" value={hostel} onChange={(e) => setHostel(e.target.value)} />
+              <label className="label-text">Delivery Location</label>
+              <LocationTypeToggle value={locationType} onChange={setLocationType} className="mb-3" />
+
+              {locationType === 'hostel' ? (
+                <HostelSelect id="hostel" value={hostel} onChange={(e) => setHostel(e.target.value)} />
+              ) : (
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" strokeWidth={1.8} aria-hidden="true" />
+                  <textarea
+                    id="address"
+                    placeholder="e.g. 12 Adeola Street, Yaba, Lagos"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    rows={2}
+                    className="input-field min-h-[4.5rem] resize-y pl-9"
+                  />
+                </div>
+              )}
             </div>
 
             <div>

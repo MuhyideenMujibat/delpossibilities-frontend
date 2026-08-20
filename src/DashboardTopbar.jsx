@@ -12,7 +12,9 @@ function todayLabel() {
 // longer carries its own logout control.
 function DashboardTopbar({ token, role, onLogout }) {
   const [price, setPrice] = useState(null)
-  const [deliveryFee, setDeliveryFee] = useState(null)
+  const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(null)
+  const [deliveryFeeOffCampus, setDeliveryFeeOffCampus] = useState(null)
+  const [locationType, setLocationType] = useState('hostel')
 
   useEffect(() => {
     let cancelled = false
@@ -22,7 +24,10 @@ function DashboardTopbar({ token, role, onLogout }) {
       .then((data) => {
         if (cancelled || !data) return
         if (data.price_per_kg !== undefined && data.price_per_kg !== null) setPrice(Number(data.price_per_kg))
-        if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFee(Number(data.delivery_fee))
+        if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFeeHostel(Number(data.delivery_fee))
+        if (data.off_campus_delivery_fee !== undefined && data.off_campus_delivery_fee !== null) {
+          setDeliveryFeeOffCampus(Number(data.off_campus_delivery_fee))
+        }
       })
       .catch(() => {})
 
@@ -31,7 +36,28 @@ function DashboardTopbar({ token, role, onLogout }) {
     }
   }, [])
 
+  // The student's own location type decides which delivery fee is actually
+  // relevant to them — admins/employees just fall back to the on-campus rate
+  // since they aren't placing personal orders.
+  useEffect(() => {
+    if (!token) return undefined
+    let cancelled = false
+
+    apiFetch('/user', { token })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.location_type) setLocationType(data.location_type)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
   if (!token) return null
+
+  const deliveryFee = locationType === 'off_campus' ? deliveryFeeOffCampus : deliveryFeeHostel
 
   return (
     <header className="sticky top-0 z-30 flex h-[52px] flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white/85 px-4 backdrop-blur sm:px-6 md:px-10">
@@ -48,7 +74,7 @@ function DashboardTopbar({ token, role, onLogout }) {
         {deliveryFee !== null && (
           <span className="figure hidden items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" aria-hidden="true" />
-            {formatNaira(deliveryFee)} delivery
+            {formatNaira(deliveryFee)} delivery{locationType === 'off_campus' ? ' (off-campus)' : ''}
           </span>
         )}
       </div>

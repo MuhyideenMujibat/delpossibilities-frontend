@@ -8,7 +8,8 @@ const SAMPLE_KG = 12
 
 function PricingPreview() {
   const [pricePerKg, setPricePerKg] = useState(null)
-  const [deliveryFee, setDeliveryFee] = useState(null)
+  const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(null)
+  const [deliveryFeeOffCampus, setDeliveryFeeOffCampus] = useState(null)
   const [offer, setOffer] = useState(null)
 
   useEffect(() => {
@@ -19,7 +20,10 @@ function PricingPreview() {
       .then((data) => {
         if (cancelled || !data) return
 
-        if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFee(Number(data.delivery_fee))
+        if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFeeHostel(Number(data.delivery_fee))
+        if (data.off_campus_delivery_fee !== undefined && data.off_campus_delivery_fee !== null) {
+          setDeliveryFeeOffCampus(Number(data.off_campus_delivery_fee))
+        }
 
         const hasOffer = data.offer_active && data.offer_price_per_kg
         if (hasOffer) {
@@ -72,12 +76,20 @@ function PricingPreview() {
             </div>
           </div>
 
-          {deliveryFee !== null && (
-            <p className="mt-4 flex items-center justify-center">
-              <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" aria-hidden="true" />
-                + {formatNaira(deliveryFee)} delivery fee, added at checkout
-              </span>
+          {(deliveryFeeHostel !== null || deliveryFeeOffCampus !== null) && (
+            <p className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {deliveryFeeHostel !== null && (
+                <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" aria-hidden="true" />
+                  + {formatNaira(deliveryFeeHostel)} on-campus delivery
+                </span>
+              )}
+              {deliveryFeeOffCampus !== null && (
+                <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-ember/15 px-3 py-1 text-xs font-semibold text-brand-ember">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-ember" aria-hidden="true" />
+                  + {formatNaira(deliveryFeeOffCampus)} off-campus delivery
+                </span>
+              )}
             </p>
           )}
 

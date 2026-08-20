@@ -37,6 +37,7 @@ function Login({ setToken, setRole, setPermissions }) {
 
       setToken(data.token)
       localStorage.setItem('token', data.token)
+      localStorage.setItem('loginAt', String(Date.now()))
       setRole(role)
       localStorage.setItem('role', role || '')
       setPermissions(permissions)

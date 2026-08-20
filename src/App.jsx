@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { SESSION_DURATION_MS } from './api'
 import Sidebar from './Sidebar'
 import DashboardTopbar from './DashboardTopbar'
 import Login from './pages/Login'
@@ -57,10 +58,35 @@ function App() {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
     localStorage.removeItem('permissions')
+    localStorage.removeItem('loginAt')
     setToken(null)
     setRole(null)
     setPermissionsState([])
   }
+
+  // Auto-logout 3 hours after login — mirrors the backend's Sanctum token
+  // expiration (config/sanctum.php) so the UI doesn't sit on stale state
+  // waiting for the next API call to 401. Also catches the 401 directly, in
+  // case the tab was open across the expiry and a request lands first.
+  useEffect(() => {
+    if (!token) return undefined
+
+    const checkExpiry = () => {
+      const loginAt = Number(localStorage.getItem('loginAt'))
+      if (loginAt && Date.now() - loginAt >= SESSION_DURATION_MS) {
+        handleLogout()
+      }
+    }
+
+    checkExpiry()
+    const intervalId = setInterval(checkExpiry, 60 * 1000)
+    window.addEventListener('auth:unauthorized', handleLogout)
+
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('auth:unauthorized', handleLogout)
+    }
+  }, [token])
 
   const isSuperAdmin = role === 'super_admin'
   const isAdmin = role === 'admin' || isSuperAdmin

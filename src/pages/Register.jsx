@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { User, Mail, Home, Phone, ShieldCheck, ArrowLeft } from 'lucide-react'
+import { User, Mail, Home, MapPin, Phone, ShieldCheck, ArrowLeft } from 'lucide-react'
 import { apiFetch, resolveRole, resolvePermissions } from '../api'
 import PasswordInput from '../components/PasswordInput'
 import AuthLayout, { AuthField } from '../components/auth/AuthLayout'
 import HostelSelect from '../HostelSelect'
+import LocationTypeToggle from '../components/LocationTypeToggle'
 
 function Register({ setToken, setRole, setPermissions }) {
   const [step, setStep] = useState('form')
@@ -12,7 +13,9 @@ function Register({ setToken, setRole, setPermissions }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [locationType, setLocationType] = useState('hostel')
   const [hostel, setHostel] = useState('')
+  const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
@@ -35,7 +38,8 @@ function Register({ setToken, setRole, setPermissions }) {
           email,
           password,
           password_confirmation: passwordConfirmation,
-          hostel,
+          location_type: locationType,
+          hostel: locationType === 'hostel' ? hostel : address,
           phone,
         },
       })
@@ -79,6 +83,7 @@ function Register({ setToken, setRole, setPermissions }) {
       const permissions = await resolvePermissions(data.token, data)
       setToken(data.token)
       localStorage.setItem('token', data.token)
+      localStorage.setItem('loginAt', String(Date.now()))
       setRole(role)
       localStorage.setItem('role', role || '')
       setPermissions(permissions)
@@ -237,24 +242,39 @@ function Register({ setToken, setRole, setPermissions }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className="label-text" htmlFor="hostel">Hostel</label>
-          <HostelSelect id="hostel" icon={Home} value={hostel} onChange={(e) => setHostel(e.target.value)} required />
-        </div>
+      <div>
+        <label className="label-text">Where should we deliver?</label>
+        <LocationTypeToggle value={locationType} onChange={setLocationType} className="mb-3" />
 
-        <AuthField
-          id="phone"
-          label="Phone"
-          icon={Phone}
-          type="tel"
-          placeholder="080…"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          autoComplete="tel"
-          required
-        />
+        {locationType === 'hostel' ? (
+          <HostelSelect id="hostel" icon={Home} value={hostel} onChange={(e) => setHostel(e.target.value)} required />
+        ) : (
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" strokeWidth={1.8} aria-hidden="true" />
+            <textarea
+              id="address"
+              placeholder="e.g. 12 Adeola Street, Yaba, Lagos"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows={2}
+              required
+              className="input-field min-h-[4.5rem] resize-y pl-9"
+            />
+          </div>
+        )}
       </div>
+
+      <AuthField
+        id="phone"
+        label="Phone"
+        icon={Phone}
+        type="tel"
+        placeholder="080…"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        autoComplete="tel"
+        required
+      />
 
       <button type="submit" disabled={submitting} className="btn-primary mt-2">
         {submitting ? 'Sending code…' : 'Register'}

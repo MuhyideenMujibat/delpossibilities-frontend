@@ -29,7 +29,7 @@ function sortByCreatedAtDesc(orders) {
 }
 
 function orderSearchText(order) {
-  return `${order.user?.name || ''} ${order.hostel_address || ''}`
+  return order.user?.name || ''
 }
 
 function ActionButton({ nextStatus, currentStatus, updating, onClick, fullWidth }) {
@@ -262,9 +262,10 @@ function AdminDashboard({ token }) {
           <OrderFilters
             filters={filters}
             onChange={setFilters}
-            searchPlaceholder="Search by student or hostel…"
+            searchPlaceholder="Search by student…"
             resultCount={filteredOrders.length}
             totalCount={orders.length}
+            showHostelFilter
           />
 
           {rows.length === 0 && (
@@ -331,7 +332,14 @@ function AdminDashboard({ token }) {
                           )}
                         </td>
                         <td className="max-w-[140px] truncate px-4 py-3 font-medium text-brand-navy">{order.user?.name}</td>
-                        <td className="max-w-[160px] truncate px-4 py-3 text-slate-600">{order.hostel_address}</td>
+                        <td className="max-w-[160px] truncate px-4 py-3 text-slate-600">
+                          {order.location_type === 'off_campus' && (
+                            <span className="mr-1 rounded-full bg-brand-ember/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-ember">
+                              Off-campus
+                            </span>
+                          )}
+                          {order.hostel_address}
+                        </td>
                         <td className="figure px-4 py-3 text-slate-600">{order.kg}</td>
                         <td className="figure px-4 py-3 font-medium text-brand-navy">{formatNaira(order.total_amount)}</td>
                         <td className="px-4 py-3">

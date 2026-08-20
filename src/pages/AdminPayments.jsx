@@ -24,7 +24,7 @@ function sortByPaidAtDesc(orders) {
 }
 
 function paymentSearchText(order) {
-  return `${order.user?.name || ''} ${order.hostel_address || ''} ${order.paystack_reference || ''}`
+  return `${order.user?.name || ''} ${order.paystack_reference || ''}`
 }
 
 function isSameMonth(date, reference) {
@@ -124,9 +124,10 @@ function AdminPayments({ token }) {
           <OrderFilters
             filters={filters}
             onChange={setFilters}
-            searchPlaceholder="Search by student, hostel, or reference…"
+            searchPlaceholder="Search by student or reference…"
             resultCount={filteredOrders.length}
             totalCount={orders.length}
+            showHostelFilter
           />
 
           {visibleOrders.length === 0 && (

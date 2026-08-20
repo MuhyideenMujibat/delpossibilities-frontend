@@ -1,6 +1,11 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api'
 export const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'http://127.0.0.1:8000'
 
+// Matches the backend's Sanctum token expiration (config/sanctum.php) — the
+// frontend proactively logs the user out at the same threshold instead of
+// waiting for the next API call to 401.
+export const SESSION_DURATION_MS = 3 * 60 * 60 * 1000
+
 // The Laravel API returns storage URLs as host-relative paths (e.g.
 // "/storage/cylinders/..."), which resolve against the Vite dev origin
 // instead of the API host when used directly as an <img src>. Absolute
@@ -35,6 +40,15 @@ export function apiFetch(path, { method = 'GET', token, body, headers = {} } = {
     method,
     headers: finalHeaders,
     body: finalBody,
+  }).then((response) => {
+    // A 401 on a request that carried a token means the session (e.g. the
+    // 3-hour Sanctum token expiry) is no longer valid — tell the app to log
+    // out. Requests without a token (login, forgot-password) 401ing is just
+    // "wrong credentials" and shouldn't trigger this.
+    if (token && response.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    }
+    return response
   })
 }
 
@@ -118,7 +132,7 @@ export function whatsappUrl(phone, message = '') {
 // `getSearchText` lets each caller decide which order fields are searchable
 // (e.g. admin also matches on student name). `dateField` lets the payments
 // table filter by when an order was paid rather than when it was created.
-export function filterOrders(orders, { search = '', status = 'all', from = '', to = '' } = {}, getSearchText, dateField = 'created_at') {
+export function filterOrders(orders, { search = '', status = 'all', hostel = 'all', from = '', to = '' } = {}, getSearchText, dateField = 'created_at') {
   const term = search.trim().toLowerCase()
   const fromDate = from ? new Date(from) : null
   const toDate = to ? new Date(to) : null
@@ -126,6 +140,8 @@ export function filterOrders(orders, { search = '', status = 'all', from = '', t
 
   return orders.filter((order) => {
     if (status !== 'all' && order.status !== status) return false
+    if (hostel === 'off_campus' && order.location_type !== 'off_campus') return false
+    if (hostel !== 'all' && hostel !== 'off_campus' && order.hostel_address !== hostel) return false
 
     const dateValue = order[dateField] || order.created_at
     const compareDate = dateValue ? new Date(dateValue) : null
