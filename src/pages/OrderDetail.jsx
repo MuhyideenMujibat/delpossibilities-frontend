@@ -127,6 +127,16 @@ function OrderDetail({ token }) {
                 <span className="text-slate-500">Gas cost</span>
                 <span className="figure font-medium text-brand-navy">{formatNaira(order.kg * order.price_per_kg)}</span>
               </div>
+
+
+              {order.loyalty_discount_applied && (
+                <div className="flex items-center justify-between">
+                  <span className="text-brand-teal">Loyalty discount</span>
+                  <span className="figure font-medium text-brand-teal">&minus;{formatNaira(order.loyalty_discount_amount)}</span>
+                </div>
+              )}         
+              
+
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Delivery fee</span>
                 <span className="figure font-medium text-brand-navy">{formatNaira(order.delivery_fee || 0)}</span>

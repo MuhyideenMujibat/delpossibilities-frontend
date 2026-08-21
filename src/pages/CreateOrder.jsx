@@ -140,8 +140,14 @@ function CreateOrder({ token }) {
   const kgValid = kg !== '' && !Number.isNaN(kgValue) && kgValue > 0
   const deliveryFee = locationType === 'off_campus' ? deliveryFeeOffCampus : deliveryFeeHostel
   const gasCost = pricePerKg !== null && kgValid ? pricePerKg * kgValue : null
-  const loyaltyDiscount = loyaltyRewardAvailable && loyalty && gasCost !== null
-    ? gasCost * (loyalty.discountPercent / 100)
+  // Mirrors the backend (OrderController::store): if this order's kg carries
+  // the student past the loyalty threshold mid-order, only the kg beyond
+  // what was needed to complete the coupon is discounted — not the whole
+  // order, and not nothing.
+  const loyaltyNeededToComplete = loyalty ? Math.max(loyalty.thresholdKg - loyaltyProgressKg, 0) : 0
+  const loyaltyDiscountableKg = loyalty && kgValid ? Math.max(kgValue - loyaltyNeededToComplete, 0) : 0
+  const loyaltyDiscount = loyalty && pricePerKg !== null && loyaltyDiscountableKg > 0
+    ? pricePerKg * loyaltyDiscountableKg * (loyalty.discountPercent / 100)
     : 0
   const total = gasCost !== null ? gasCost - loyaltyDiscount + deliveryFee : null
   // Ordering for someone else means their cylinder photo shouldn't stand in
@@ -301,11 +307,13 @@ function CreateOrder({ token }) {
             </div>
 
             {loyalty && (
-              loyaltyRewardAvailable ? (
+              loyaltyDiscountableKg > 0 ? (
                 <div className="rounded-xl bg-brand-teal/10 px-4 py-3 text-sm text-brand-teal">
                   <p className="font-semibold">🎉 Loyalty discount unlocked!</p>
                   <p className="mt-0.5 text-xs text-brand-teal/80">
-                    {loyalty.discountPercent}% off this order — your count then resets so you can earn the next one.
+                    {loyaltyRewardAvailable
+                      ? `${loyalty.discountPercent}% off this order — your count then resets so you can earn the next one.`
+                      : `${loyalty.discountPercent}% off ${loyaltyDiscountableKg} of this order's ${kg} kg — the rest completes your coupon, then your count resets.`}
                   </p>
                 </div>
               ) : (
