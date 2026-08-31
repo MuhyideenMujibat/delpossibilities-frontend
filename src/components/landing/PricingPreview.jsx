@@ -9,7 +9,7 @@ const SAMPLE_KG = 12
 function PricingPreview() {
   const [pricePerKg, setPricePerKg] = useState(null)
   const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(null)
-  const [deliveryFeeOffCampus, setDeliveryFeeOffCampus] = useState(null)
+  const [minZoneFee, setMinZoneFee] = useState(null)
   const [offer, setOffer] = useState(null)
 
   useEffect(() => {
@@ -21,9 +21,6 @@ function PricingPreview() {
         if (cancelled || !data) return
 
         if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFeeHostel(Number(data.delivery_fee))
-        if (data.off_campus_delivery_fee !== undefined && data.off_campus_delivery_fee !== null) {
-          setDeliveryFeeOffCampus(Number(data.off_campus_delivery_fee))
-        }
 
         const hasOffer = data.offer_active && data.offer_price_per_kg
         if (hasOffer) {
@@ -32,6 +29,16 @@ function PricingPreview() {
           return
         }
         if (data.price_per_kg !== undefined && data.price_per_kg !== null) setPricePerKg(Number(data.price_per_kg))
+      })
+      .catch(() => {})
+
+    // Off-campus delivery is zone-based (see DeliveryZoneSelect) rather than
+    // a single flat fee — show the cheapest zone as a "from" figure.
+    apiFetch('/delivery-zones')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((zones) => {
+        if (cancelled || !Array.isArray(zones) || zones.length === 0) return
+        setMinZoneFee(Math.min(...zones.map((z) => Number(z.fee))))
       })
       .catch(() => {})
 
@@ -76,7 +83,7 @@ function PricingPreview() {
             </div>
           </div>
 
-          {(deliveryFeeHostel !== null || deliveryFeeOffCampus !== null) && (
+          {(deliveryFeeHostel !== null || minZoneFee !== null) && (
             <p className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {deliveryFeeHostel !== null && (
                 <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent">
@@ -84,10 +91,10 @@ function PricingPreview() {
                   + {formatNaira(deliveryFeeHostel)} on-campus delivery
                 </span>
               )}
-              {deliveryFeeOffCampus !== null && (
+              {minZoneFee !== null && (
                 <span className="figure inline-flex items-center gap-1.5 rounded-full bg-brand-ember/15 px-3 py-1 text-xs font-semibold text-brand-ember">
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-ember" aria-hidden="true" />
-                  + {formatNaira(deliveryFeeOffCampus)} off-campus delivery
+                  From {formatNaira(minZoneFee)} off-campus delivery
                 </span>
               )}
             </p>

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { User, Mail, Home, MapPin, Phone, ShieldCheck, ArrowLeft } from 'lucide-react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { User, Mail, Home, MapPin, Phone, ShieldCheck, ArrowLeft, Gift } from 'lucide-react'
 import { apiFetch, resolveRole, resolvePermissions } from '../api'
+import { takePostAuthRedirect } from '../authRedirect'
 import PasswordInput from '../components/PasswordInput'
 import AuthLayout, { AuthField } from '../components/auth/AuthLayout'
 import HostelSelect from '../HostelSelect'
@@ -17,12 +18,15 @@ function Register({ setToken, setRole, setPermissions }) {
   const [hostel, setHostel] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
+  const [referredByCustomerId, setReferredByCustomerId] = useState('')
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from
 
   const handleRegister = async (e) => {
     e.preventDefault()
@@ -41,6 +45,7 @@ function Register({ setToken, setRole, setPermissions }) {
           location_type: locationType,
           hostel: locationType === 'hostel' ? hostel : address,
           phone,
+          referred_by_customer_id: referredByCustomerId || undefined,
         },
       })
 
@@ -87,7 +92,8 @@ function Register({ setToken, setRole, setPermissions }) {
       setRole(role)
       localStorage.setItem('role', role || '')
       setPermissions(permissions)
-      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : '/orders')
+      const stored = takePostAuthRedirect()
+      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : from || stored || '/', { replace: true })
     } catch {
       setError('Could not reach the server.')
     } finally {
@@ -183,7 +189,7 @@ function Register({ setToken, setRole, setPermissions }) {
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-brand-teal hover:underline">
+          <Link to="/login" state={from ? { from } : undefined} className="font-medium text-brand-teal hover:underline">
             Log In
           </Link>
         </>
@@ -274,6 +280,15 @@ function Register({ setToken, setRole, setPermissions }) {
         onChange={(e) => setPhone(e.target.value)}
         autoComplete="tel"
         required
+      />
+
+      <AuthField
+        id="referred-by"
+        label="Referred by (Customer ID) — optional"
+        icon={Gift}
+        placeholder="DEL-2026-0001"
+        value={referredByCustomerId}
+        onChange={(e) => setReferredByCustomerId(e.target.value.trim())}
       />
 
       <button type="submit" disabled={submitting} className="btn-primary mt-2">

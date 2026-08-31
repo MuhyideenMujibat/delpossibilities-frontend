@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
-import { MessageCircle, Phone, Mail, MapPin } from 'lucide-react'
+import { MessageCircle, Phone, Mail, MapPin, Wrench, ShoppingBasket } from 'lucide-react'
 import TopNav from '../TopNav'
 import logo from '../assets/delpossibilitiesprofile.jpeg'
 import Hero from '../components/landing/Hero'
 import HowItWorks from '../components/landing/HowItWorks'
 import ServicesGrid from '../components/landing/ServicesGrid'
 import PricingPreview from '../components/landing/PricingPreview'
+import SubscriptionPreview from '../components/landing/SubscriptionPreview'
+import ShopSection from '../components/landing/ShopSection'
 import TrustSection from '../components/landing/TrustSection'
+import InvestmentPreview from '../components/landing/InvestmentPreview'
 import TrackingPreview from '../components/landing/TrackingPreview'
 
 const GAS_SIZES = [
@@ -17,12 +20,18 @@ const GAS_SIZES = [
   { size: '12 kg', note: 'Full home cylinder' },
 ]
 
-function Landing() {
+// `token`/`isAdmin` are passed through so a logged-in visitor viewing this
+// public page gets the real "Apply to Invest" button in InvestmentPreview
+// (not "Log in to invest"), the header shows a link back into the app
+// instead of Log In / Register, and the "order" CTAs point at the app
+// rather than bouncing through /register.
+function Landing({ token, isAdmin }) {
+  const orderCtaTo = token ? '/' : '/register'
   return (
-    <div className="-m-4 sm:-m-6 md:-m-10">
-      <TopNav />
+    <div>
+      <TopNav token={token} isAdmin={isAdmin} />
 
-      <Hero />
+      <Hero orderCtaTo={orderCtaTo} />
 
       <section id="about" className="bg-brand-bg">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
@@ -89,7 +98,26 @@ function Landing() {
 
       <PricingPreview />
 
+      <SubscriptionPreview />
+
+      <ShopSection
+        group="gas_services"
+        title="Gas Services Shop"
+        subtitle="Cylinders, accessories & repairs"
+        icon={Wrench}
+        tone="brand-bg"
+      />
+
+      <ShopSection
+        group="eazy_market"
+        title="Eazy Market & Errands"
+        subtitle="Groceries and market runs, delivered"
+        icon={ShoppingBasket}
+      />
+
       <TrustSection />
+
+      <InvestmentPreview token={token} />
 
       <TrackingPreview />
 
@@ -101,7 +129,7 @@ function Landing() {
           <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
             Create an account, upload your cylinder, and order in under a minute.
           </p>
-          <Link to="/register" className="btn-primary mt-8 inline-flex bg-brand-ember px-7 py-3 text-sm shadow-brand-ember/30 hover:bg-brand-ember/90">
+          <Link to={orderCtaTo} className="btn-primary mt-8 inline-flex bg-brand-ember px-7 py-3 text-sm shadow-brand-ember/30 hover:bg-brand-ember/90">
             Order Your Refill
           </Link>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserCircle, MapPin } from 'lucide-react'
+import { UserCircle, MapPin, Gift, Copy, Check } from 'lucide-react'
 import { apiFetch } from '../api'
 import CylinderImageUpload from '../CylinderImageUpload'
 import ChangePasswordForm from '../components/ChangePasswordForm'
@@ -16,6 +16,9 @@ function Profile({ token }) {
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [cylinderImageUrl, setCylinderImageUrl] = useState(null)
+  const [referralBalance, setReferralBalance] = useState(0)
+  const [customerId, setCustomerId] = useState(null)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -38,6 +41,7 @@ function Profile({ token }) {
         else setHostel(data.hostel || '')
         setPhone(data.phone || '')
         setCylinderImageUrl(data.cylinder_image_url || null)
+        setReferralBalance(Number(data.referral_credit_balance || 0))
       } catch {
         setError('Could not reach the server.')
       } finally {
@@ -45,8 +49,31 @@ function Profile({ token }) {
       }
     }
 
+    const fetchSubscription = async () => {
+      try {
+        const response = await apiFetch('/my-subscription', { token })
+        if (!response.ok) return
+        const data = await response.json().catch(() => null)
+        setCustomerId(data?.customer_id || null)
+      } catch {
+        // Non-essential — the referral card just won't show a Customer ID.
+      }
+    }
+
     fetchUser()
+    fetchSubscription()
   }, [token])
+
+  const handleCopyCustomerId = async () => {
+    if (!customerId) return
+    try {
+      await navigator.clipboard.writeText(customerId)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard access denied — nothing to do, the ID is still visible to copy manually.
+    }
+  }
 
   const handleSubmit = async () => {
     setError('')
@@ -178,6 +205,45 @@ function Profile({ token }) {
           <h3 className="mb-4 text-lg font-semibold text-brand-navy">Change Password</h3>
           <ChangePasswordForm token={token} />
         </div>
+
+        {(customerId || referralBalance > 0) && (
+          <div className="card lg:col-span-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="h-5 w-5 text-brand-teal" strokeWidth={1.8} />
+              <h3 className="text-lg font-semibold text-brand-navy">Refer & Earn</h3>
+            </div>
+
+            {customerId && (
+              <div className="mb-4">
+                <p className="text-sm text-slate-600 mb-2">
+                  Share your Customer ID with a new student. When they register with it and pay for
+                  their first gas refill or subscription, you earn a delivery-fee credit automatically.
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="input-field flex-1 font-mono text-sm bg-slate-50">{customerId}</code>
+                  <button
+                    type="button"
+                    onClick={handleCopyCustomerId}
+                    className="btn-outline whitespace-nowrap"
+                  >
+                    {copied ? (
+                      <span className="flex items-center gap-1.5"><Check className="h-4 w-4" strokeWidth={2} /> Copied</span>
+                    ) : (
+                      <span className="flex items-center gap-1.5"><Copy className="h-4 w-4" strokeWidth={1.8} /> Copy</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {referralBalance > 0 && (
+              <p className="alert-success">
+                You have &#8358;{referralBalance.toLocaleString()} in referral credit — it's applied
+                automatically as an option at checkout on your next gas refill or Eazy Market order.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

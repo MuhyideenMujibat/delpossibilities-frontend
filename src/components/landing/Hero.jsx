@@ -4,7 +4,7 @@ import Reveal, { RevealItem } from '../motion/Reveal'
 import StatusBadge from '../../StatusBadge'
 import hero from '../../assets/delpossibilitieslandingpage.jpeg'
 
-function Hero() {
+function Hero({ orderCtaTo = '/register' }) {
   const shouldReduceMotion = useReducedMotion()
 
   return (
@@ -37,7 +37,7 @@ function Hero() {
           </RevealItem>
 
           <RevealItem as="div" className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-            <Link to="/register" className="btn-primary px-6 py-3 text-sm shadow-lg shadow-brand-teal/25">
+            <Link to={orderCtaTo} className="btn-primary px-6 py-3 text-sm shadow-lg shadow-brand-teal/25">
               Order Gas Now
             </Link>
             <a href="#how-it-works" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10">

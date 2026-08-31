@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { ShoppingCart } from 'lucide-react'
 import { apiFetch, formatNaira } from './api'
 import HeaderUserMenu from './HeaderUserMenu'
 import NotificationBell from './NotificationBell'
+import { useCart } from './cartContext'
 
 function todayLabel() {
   return new Date().toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -13,8 +16,11 @@ function todayLabel() {
 function DashboardTopbar({ token, role, onLogout }) {
   const [price, setPrice] = useState(null)
   const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(null)
-  const [deliveryFeeOffCampus, setDeliveryFeeOffCampus] = useState(null)
   const [locationType, setLocationType] = useState('hostel')
+  const isAdmin = role === 'admin' || role === 'super_admin'
+  // Always called (Rules of Hooks) — the badge below just isn't rendered
+  // for admins, who never buy anything.
+  const cart = useCart()
 
   useEffect(() => {
     let cancelled = false
@@ -25,9 +31,6 @@ function DashboardTopbar({ token, role, onLogout }) {
         if (cancelled || !data) return
         if (data.price_per_kg !== undefined && data.price_per_kg !== null) setPrice(Number(data.price_per_kg))
         if (data.delivery_fee !== undefined && data.delivery_fee !== null) setDeliveryFeeHostel(Number(data.delivery_fee))
-        if (data.off_campus_delivery_fee !== undefined && data.off_campus_delivery_fee !== null) {
-          setDeliveryFeeOffCampus(Number(data.off_campus_delivery_fee))
-        }
       })
       .catch(() => {})
 
@@ -57,7 +60,10 @@ function DashboardTopbar({ token, role, onLogout }) {
 
   if (!token) return null
 
-  const deliveryFee = locationType === 'off_campus' ? deliveryFeeOffCampus : deliveryFeeHostel
+  // Off-campus delivery is zone-based now (see DeliveryZoneSelect) — there's
+  // no single flat fee to summarize here the way on-campus still has, so
+  // this badge is on-campus only.
+  const deliveryFee = locationType === 'hostel' ? deliveryFeeHostel : null
 
   return (
     <header className="sticky top-0 z-30 flex h-[52px] flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white/85 px-4 backdrop-blur sm:px-6 md:px-10">
@@ -74,14 +80,28 @@ function DashboardTopbar({ token, role, onLogout }) {
         {deliveryFee !== null && (
           <span className="figure hidden items-center gap-1.5 rounded-full bg-brand-accent/15 px-3 py-1 text-xs font-semibold text-brand-accent sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" aria-hidden="true" />
-            {formatNaira(deliveryFee)} delivery{locationType === 'off_campus' ? ' (off-campus)' : ''}
+            {formatNaira(deliveryFee)} delivery
           </span>
         )}
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {!isAdmin && (
+          <Link
+            to="/cart"
+            className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-brand-navy"
+            aria-label="Cart"
+          >
+            <ShoppingCart className="h-4.5 w-4.5" strokeWidth={1.8} />
+            {cart.itemCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand-ember px-1 text-[10px] font-bold text-white">
+                {cart.itemCount}
+              </span>
+            )}
+          </Link>
+        )}
         <NotificationBell token={token} />
-        <HeaderUserMenu token={token} role={role} onLogout={onLogout} />
+        <HeaderUserMenu role={role} onLogout={onLogout} />
       </div>
     </header>
   )

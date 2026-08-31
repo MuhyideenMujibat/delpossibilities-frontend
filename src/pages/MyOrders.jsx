@@ -163,6 +163,9 @@ function MyOrders({ token }) {
                       {order.loyalty_discount_applied && (
                         <span className="ml-1.5 inline-block rounded-full bg-brand-teal/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-teal">Loyalty</span>
                       )}
+                      {(order.product_order || order.attached_product_order) && (
+                        <span className="ml-1.5 inline-block rounded-full bg-brand-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-brand-accent">+ Shop</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={order.status} label={STATUS_LABELS[order.status] || order.status} />
@@ -202,6 +205,9 @@ function MyOrders({ token }) {
                     <span className="figure font-medium">{formatNaira(order.total_amount)}</span>
                     {order.loyalty_discount_applied && (
                       <span className="inline-block rounded-full bg-brand-teal/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-teal">Loyalty</span>
+                    )}
+                    {(order.product_order || order.attached_product_order) && (
+                      <span className="inline-block rounded-full bg-brand-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-brand-accent">+ Shop</span>
                     )}
                   </span>
                   <span className="text-xs text-slate-400">{formatDate(order.created_at)}</span>

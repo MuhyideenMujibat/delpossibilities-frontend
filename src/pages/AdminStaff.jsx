@@ -113,7 +113,7 @@ function AdminStaff({ token }) {
         subtitle="Every employee/admin account and what they have access to."
         icon={Briefcase}
         action={
-          <Link to="/admin/users" className="btn-primary">
+          <Link to="/admin/people?tab=add-user" className="btn-primary">
             <UserPlus className="h-4 w-4" strokeWidth={2} />
             Add User
           </Link>
@@ -130,7 +130,7 @@ function AdminStaff({ token }) {
           title="No staff yet"
           description="Employee accounts you add from the Add User page will show up here."
           action={
-            <Link to="/admin/users" className="btn-primary mt-2">
+            <Link to="/admin/people?tab=add-user" className="btn-primary mt-2">
               <UserPlus className="h-4 w-4" strokeWidth={2} />
               Add User
             </Link>

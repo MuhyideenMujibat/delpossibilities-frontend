@@ -37,7 +37,7 @@ function AdminStudentDetail({ token }) {
           title="Student not found"
           description={error || "This account doesn't exist."}
           action={
-            <Link to="/admin/students" className="btn-primary mt-2">
+            <Link to="/admin/people?tab=students" className="btn-primary mt-2">
               <ArrowLeft className="h-4 w-4" strokeWidth={2} />
               Back to Students
             </Link>
@@ -60,7 +60,7 @@ function AdminStudentDetail({ token }) {
         title={student.name}
         subtitle={`Joined ${formatDate(student.created_at)}`}
         action={
-          <Link to="/admin/students" className="btn-outline">
+          <Link to="/admin/people?tab=students" className="btn-outline">
             <ArrowLeft className="h-4 w-4" strokeWidth={2} />
             All Students
           </Link>

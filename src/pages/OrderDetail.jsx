@@ -8,6 +8,52 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import OrderTimeline from '../components/OrderTimeline'
 
+// One shop cart riding on this refill. Rendered up to twice — once for a
+// cart bundled unpaid into this order's charge (order.product_order), once
+// for a cart that was paid standalone and is just tagged along for delivery
+// (order.attached_product_order). The two are independent, so both can show.
+function ShopBundleCard({ productOrder, title }) {
+  return (
+    <div className="card">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-heading text-base font-bold text-brand-navy">{title}</h3>
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+            productOrder.status === 'pending'
+              ? 'bg-amber-100 text-amber-700'
+              : productOrder.status === 'cancelled'
+                ? 'bg-slate-100 text-slate-500'
+                : 'bg-brand-teal/10 text-brand-teal'
+          }`}
+        >
+          {productOrder.status === 'pending'
+            ? 'Not yet paid'
+            : productOrder.status === 'cancelled'
+              ? 'Cancelled'
+              : 'Paid'}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-2 text-sm">
+        {productOrder.items?.map((item) => (
+          <div key={item.id} className="flex items-center justify-between">
+            <span className="text-slate-600">
+              {item.quantity} × {item.product_name}
+              {item.variant_label ? ` (${item.variant_label})` : ''}
+            </span>
+            <span className="figure font-medium text-brand-navy">{formatNaira(item.line_total)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+        <span className="font-medium text-slate-600">Shop total</span>
+        <span className="figure text-base font-bold text-brand-navy">{formatNaira(productOrder.total_amount)}</span>
+      </div>
+    </div>
+  )
+}
+
 // There's no GET /orders/{id} endpoint for students — only the full
 // /my-orders list. Fetching that and finding the match by id avoids adding
 // a new authenticated backend route just for this page.
@@ -167,6 +213,16 @@ function OrderDetail({ token }) {
               </button>
             )}
           </div>
+
+          {order.product_order && (
+            <ShopBundleCard productOrder={order.product_order} title="Shopped with this refill" />
+          )}
+          {order.attached_product_order && (
+            <ShopBundleCard
+              productOrder={order.attached_product_order}
+              title="Paid cart delivered with this refill"
+            />
+          )}
         </div>
       </div>
     </div>

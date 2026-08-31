@@ -1,64 +1,76 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { motion } from 'motion/react'
 import {
   Package,
   PlusCircle,
   ImagePlus,
   LayoutDashboard,
-  Tag,
+  SlidersHorizontal,
   BarChart3,
   Wallet,
-  UserPlus,
   Users,
-  Briefcase,
-  ShieldCheck,
-  Layers,
-  Building2,
   Menu,
   X,
+  CalendarCheck,
+  MessageSquareText,
+  ShoppingBag,
+  ShoppingCart,
+  TrendingUp,
 } from 'lucide-react'
 import logo from './assets/delpossibilitiesprofile.jpeg'
 
+// Browsing/subscribing to a plan now happens on the public landing page
+// (see SubscriptionPreview) — "My Subscription" only belongs in the
+// dashboard once someone has actually subscribed, gated below via
+// `requiresSubscription`.
 const STUDENT_LINKS = [
   { to: '/orders', label: 'My Orders', icon: Package },
   { to: '/create-order', label: 'Create Order', icon: PlusCircle },
+  { to: '/cart', label: 'My Cart', icon: ShoppingCart },
+  { to: '/my-shop-orders', label: 'My Shop Orders', icon: ShoppingBag },
+  { to: '/subscription', label: 'My Subscription', icon: CalendarCheck, requiresSubscription: true },
+  { to: '/my-investments', label: 'My Investments', icon: TrendingUp },
   { to: '/upload-cylinder-image', label: 'Cylinder Image', icon: ImagePlus },
 ]
 
-// `permission` gates a link for regular admins/employees (super admins
-// always see everything). `superAdminOnly` hides a link entirely unless
-// the account is the super admin, regardless of any permission grant.
+// Related admin pages are now fused into tabbed hubs so this list stays
+// short (see src/pages/admin/*Hub.jsx). `permission` gates a hub for
+// regular admins/employees (super admins always see everything);
+// `superAdminOnly` hides it entirely unless the account is the super admin.
+// A hub only shows tabs the admin is actually allowed to see, so e.g. an
+// admin with just `manage_settings` opens "Configuration" straight onto
+// its lone Price Settings tab.
 const ADMIN_LINKS = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'manage_orders' },
+  { to: '/admin', label: 'Orders', icon: LayoutDashboard, permission: 'manage_orders' },
   { to: '/admin/payments', label: 'Payments', icon: Wallet, permission: 'manage_payments' },
+  { to: '/admin/subscriptions', label: 'Subscriptions', icon: CalendarCheck, permission: 'manage_subscriptions' },
+  { to: '/admin/people', label: 'People', icon: Users, permission: 'manage_students' },
+  { to: '/admin/configuration', label: 'Configuration', icon: SlidersHorizontal, permission: 'manage_settings' },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3, permission: 'manage_reports' },
-  { to: '/admin/students', label: 'Students', icon: Users, permission: 'manage_students' },
-  { to: '/admin/users', label: 'Add User', icon: UserPlus, permission: 'manage_students' },
-  { to: '/admin/settings', label: 'Price Settings', icon: Tag, permission: 'manage_settings' },
-  { to: '/admin/staff', label: 'Staff', icon: Briefcase, superAdminOnly: true },
-  { to: '/admin/user-types', label: 'User Types', icon: Layers, superAdminOnly: true },
-  { to: '/admin/hostels', label: 'Hostels', icon: Building2, superAdminOnly: true },
-  { to: '/admin/permissions', label: 'Permissions', icon: ShieldCheck, superAdminOnly: true },
+  { to: '/admin/investments', label: 'Investments', icon: TrendingUp, superAdminOnly: true },
+  { to: '/admin/feedback', label: 'Suggestions & Reviews', icon: MessageSquareText, superAdminOnly: true },
 ]
 
+// The brand mark links to /home (the public landing page) from every
+// header in the app — logged in or out, admin or student.
 function BrandMark({ compact }) {
   if (compact) {
     return (
-      <div className="flex min-w-0 items-center gap-3 px-4 py-3">
+      <Link to="/home" className="flex min-w-0 items-center gap-3 px-4 py-3">
         <img src={logo} alt="D'EL-Possibilities logo" className="h-8 w-8 rounded-full object-cover" />
         <span className="truncate font-heading text-sm font-bold text-white">D&apos;EL-POSSIBILITIES</span>
-      </div>
+      </Link>
     )
   }
 
   return (
-    <div className="min-w-0 px-5 pb-6 pt-7">
+    <Link to="/home" className="block min-w-0 px-5 pb-6 pt-7">
       <div className="flex min-w-0 items-center gap-2.5">
         <img src={logo} alt="D'EL-Possibilities logo" className="h-10 w-10 flex-shrink-0 rounded-full object-cover ring-2 ring-white/15" />
         <p className="min-w-0 truncate font-heading text-sm font-black uppercase tracking-tight text-white">D&apos;EL-Possibilities</p>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -68,7 +80,12 @@ function BrandMark({ compact }) {
 // between items on navigation (via framer-motion's layoutId).
 function PipelineNav({ links, onNavigate }) {
   return (
-    <nav className="relative min-w-0 flex-1 px-5 py-4">
+    // min-h-0 is load-bearing here: without it a flex child won't shrink
+    // below its content size, so overflow-y-auto never kicks in and the
+    // ancestor's overflow-hidden just clips whatever doesn't fit instead of
+    // scrolling to it — which is exactly how links past Staff went missing
+    // once the nav list grew past one screen.
+    <nav className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-4">
       <ul className="flex flex-col gap-1">
         {links.map((link) => {
           const Icon = link.icon
@@ -121,7 +138,7 @@ function SidebarContent({ links, onNavigate }) {
   )
 }
 
-function Sidebar({ token, role, permissions = [] }) {
+function Sidebar({ token, role, permissions = [], hasSubscription = false }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   if (!token) return null
@@ -135,7 +152,7 @@ function Sidebar({ token, role, permissions = [] }) {
         if (link.permission) return isSuperAdmin || permissions.includes(link.permission)
         return true
       })
-    : STUDENT_LINKS
+    : STUDENT_LINKS.filter((link) => !link.requiresSubscription || hasSubscription)
 
   return (
     <>

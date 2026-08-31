@@ -87,7 +87,7 @@ function AdminStudents({ token }) {
         subtitle="Everyone registered as a student, in one list."
         icon={Users}
         action={
-          <Link to="/admin/users" className="btn-primary">
+          <Link to="/admin/people?tab=add-user" className="btn-primary">
             <UserPlus className="h-4 w-4" strokeWidth={2} />
             Add User
           </Link>

@@ -1,20 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, UserCircle, LogOut } from 'lucide-react'
-import { useCurrentUser } from './userContext'
-import ConfirmDialog from './components/ConfirmDialog'
+import { ChevronDown, UserCircle, LogIn, UserPlus } from 'lucide-react'
 
-function initialsOf(name) {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || name[0].toUpperCase()
-}
-
-function HeaderUserMenu({ role, onLogout }) {
-  const { user } = useCurrentUser()
-  const name = user?.name || ''
+// Occupies the same visual slot as HeaderUserMenu, so the header's right
+// cluster doesn't jump around between guest and logged-in states — just a
+// generic avatar (no initials to show yet) with Log In / Register instead of
+// Profile / Log Out.
+function GuestUserMenu() {
   const [open, setOpen] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const menuRef = useRef(null)
   const navigate = useNavigate()
 
@@ -26,8 +19,6 @@ function HeaderUserMenu({ role, onLogout }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const profilePath = role === 'admin' || role === 'super_admin' ? '/admin/profile' : '/profile'
-
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -37,10 +28,10 @@ function HeaderUserMenu({ role, onLogout }) {
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-slate-100"
       >
-        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy font-mono text-xs font-semibold text-white">
-          {initialsOf(name)}
+        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+          <UserCircle className="h-5 w-5" strokeWidth={1.8} />
         </span>
-        <span className="hidden text-sm font-medium text-slate-600 sm:inline">{name || '—'}</span>
+        <span className="hidden text-sm font-medium text-slate-600 sm:inline">Guest</span>
         <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} strokeWidth={2} />
       </button>
 
@@ -51,39 +42,29 @@ function HeaderUserMenu({ role, onLogout }) {
             role="menuitem"
             onClick={() => {
               setOpen(false)
-              navigate(profilePath)
+              navigate('/login')
             }}
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50"
           >
-            <UserCircle className="h-4 w-4 text-slate-400" strokeWidth={1.8} />
-            Profile
+            <LogIn className="h-4 w-4 text-slate-400" strokeWidth={1.8} />
+            Log In
           </button>
           <button
             type="button"
             role="menuitem"
             onClick={() => {
               setOpen(false)
-              setConfirmOpen(true)
+              navigate('/register')
             }}
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-brand-teal hover:bg-brand-teal/5"
           >
-            <LogOut className="h-4 w-4" strokeWidth={1.8} />
-            Log Out
+            <UserPlus className="h-4 w-4" strokeWidth={1.8} />
+            Register
           </button>
         </div>
       )}
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Log out?"
-        message="You'll need to log in again to access your account."
-        confirmLabel="Log Out"
-        tone="danger"
-        onConfirm={onLogout}
-        onCancel={() => setConfirmOpen(false)}
-      />
     </div>
   )
 }
 
-export default HeaderUserMenu
+export default GuestUserMenu

@@ -3,8 +3,9 @@ export const SERVER_BASE = import.meta.env.VITE_SERVER_BASE || 'http://127.0.0.1
 
 // Matches the backend's Sanctum token expiration (config/sanctum.php) — the
 // frontend proactively logs the user out at the same threshold instead of
-// waiting for the next API call to 401.
-export const SESSION_DURATION_MS = 3 * 60 * 60 * 1000
+// waiting for the next API call to 401. 60 days, not a short session, since
+// students refill roughly monthly rather than daily.
+export const SESSION_DURATION_MS = 60 * 24 * 60 * 60 * 1000
 
 // The Laravel API returns storage URLs as host-relative paths (e.g.
 // "/storage/cylinders/..."), which resolve against the Vite dev origin
@@ -42,7 +43,7 @@ export function apiFetch(path, { method = 'GET', token, body, headers = {} } = {
     body: finalBody,
   }).then((response) => {
     // A 401 on a request that carried a token means the session (e.g. the
-    // 3-hour Sanctum token expiry) is no longer valid — tell the app to log
+    // 60-day Sanctum token expiry) is no longer valid — tell the app to log
     // out. Requests without a token (login, forgot-password) 401ing is just
     // "wrong credentials" and shouldn't trigger this.
     if (token && response.status === 401) {

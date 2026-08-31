@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutDashboard, Wallet, Clock, Truck, PackageSearch, BarChart3, MessageCircle, X } from 'lucide-react'
+import { LayoutDashboard, Wallet, Clock, Truck, PackageSearch, BarChart3, MessageCircle, X, Droplets, ArrowRight, ShoppingBag } from 'lucide-react'
 import { apiFetch, formatNaira, formatDate, filterOrders, PAID_STATUSES, STATUS_LABELS, whatsappUrl } from '../api'
 import StatusBadge from '../StatusBadge'
 import PageHeader from '../components/PageHeader'
@@ -42,7 +42,7 @@ function ActionButton({ nextStatus, currentStatus, updating, onClick, fullWidth 
   )
 }
 
-function AdminDashboard({ token }) {
+function AdminDashboard({ token, canViewRefills = false }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,6 +55,8 @@ function AdminDashboard({ token }) {
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [bulkConfirm, setBulkConfirm] = useState(null)
   const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [pendingRefillCount, setPendingRefillCount] = useState(0)
+  const [pendingShopOrderCount, setPendingShopOrderCount] = useState(0)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -81,6 +83,64 @@ function AdminDashboard({ token }) {
 
     const intervalId = setInterval(fetchOrders, POLL_INTERVAL_MS)
     return () => clearInterval(intervalId)
+  }, [token])
+
+  // Refills are a separate table/page (see AdminRefills) — payment already
+  // happened for a subscriber, so they don't belong mixed into this
+  // payment-gated order queue. This just keeps a pending count visible here
+  // so it can't get missed by only checking the Refills page.
+  useEffect(() => {
+    if (!canViewRefills) {
+      setPendingRefillCount(0)
+      return undefined
+    }
+
+    let cancelled = false
+
+    const fetchPendingRefillCount = async () => {
+      try {
+        const response = await apiFetch('/admin/refills?status=pending', { token })
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        if (!cancelled) setPendingRefillCount(Array.isArray(data) ? data.length : 0)
+      } catch {
+        // Silent — this is a secondary indicator, not core dashboard data.
+      }
+    }
+
+    fetchPendingRefillCount()
+
+    const intervalId = setInterval(fetchPendingRefillCount, POLL_INTERVAL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [token, canViewRefills])
+
+  // Same reasoning as pendingRefillCount above — standalone shop orders
+  // (not bundled with a gas order/refill) live on their own page too.
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchPendingShopOrderCount = async () => {
+      try {
+        const response = await apiFetch('/admin/product-orders?status=approved', { token })
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        const standaloneCount = (Array.isArray(data) ? data : []).filter((po) => !po.order && !po.refill).length
+        if (!cancelled) setPendingShopOrderCount(standaloneCount)
+      } catch {
+        // Silent — this is a secondary indicator, not core dashboard data.
+      }
+    }
+
+    fetchPendingShopOrderCount()
+
+    const intervalId = setInterval(fetchPendingShopOrderCount, POLL_INTERVAL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(intervalId)
+    }
   }, [token])
 
   const requestStatusUpdate = (orderId, nextStatus) => setConfirmTarget({ orderId, nextStatus })
@@ -248,6 +308,38 @@ function AdminDashboard({ token }) {
         <StatCard label="Awaiting Approval" value={stats.awaitingApproval} icon={Clock} tone="amber" />
         <StatCard label="In Progress" value={stats.inProgress} icon={Truck} tone="accent" hint="Approved or picked up" />
       </div>
+
+      {canViewRefills && pendingRefillCount > 0 && (
+        <Link
+          to="/admin/subscriptions?tab=refills"
+          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 transition-colors hover:bg-amber-100"
+        >
+          <span className="flex items-center gap-2.5 text-sm font-medium">
+            <Droplets className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
+            {pendingRefillCount} subscription refill{pendingRefillCount === 1 ? '' : 's'} pending — not shown here, only on the Refills page.
+          </span>
+          <span className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold">
+            Go to Refills
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+          </span>
+        </Link>
+      )}
+
+      {pendingShopOrderCount > 0 && (
+        <Link
+          to="/admin?tab=shop-orders"
+          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 transition-colors hover:bg-amber-100"
+        >
+          <span className="flex items-center gap-2.5 text-sm font-medium">
+            <ShoppingBag className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
+            {pendingShopOrderCount} shop order{pendingShopOrderCount === 1 ? '' : 's'} paid and awaiting fulfillment — not shown here, only on the Shop Orders page.
+          </span>
+          <span className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold">
+            Go to Shop Orders
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+          </span>
+        </Link>
+      )}
 
       {error && <p className="alert-error mb-6">{error}</p>}
 
