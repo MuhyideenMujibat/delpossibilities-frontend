@@ -16,7 +16,7 @@ function Profile({ token }) {
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [cylinderImageUrl, setCylinderImageUrl] = useState(null)
-  const [referralBalance, setReferralBalance] = useState(0)
+  const [referralCoupons, setReferralCoupons] = useState(0)
   const [customerId, setCustomerId] = useState(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -41,7 +41,10 @@ function Profile({ token }) {
         else setHostel(data.hostel || '')
         setPhone(data.phone || '')
         setCylinderImageUrl(data.cylinder_image_url || null)
-        setReferralBalance(Number(data.referral_credit_balance || 0))
+        setReferralCoupons(Number(data.referral_discount_available || 0))
+        // Every account carries a customer_id from signup now, so it comes
+        // straight off /user — no separate subscription lookup needed.
+        setCustomerId(data.customer_id || null)
       } catch {
         setError('Could not reach the server.')
       } finally {
@@ -49,19 +52,7 @@ function Profile({ token }) {
       }
     }
 
-    const fetchSubscription = async () => {
-      try {
-        const response = await apiFetch('/my-subscription', { token })
-        if (!response.ok) return
-        const data = await response.json().catch(() => null)
-        setCustomerId(data?.customer_id || null)
-      } catch {
-        // Non-essential — the referral card just won't show a Customer ID.
-      }
-    }
-
     fetchUser()
-    fetchSubscription()
   }, [token])
 
   const handleCopyCustomerId = async () => {
@@ -206,7 +197,7 @@ function Profile({ token }) {
           <ChangePasswordForm token={token} />
         </div>
 
-        {(customerId || referralBalance > 0) && (
+        {(customerId || referralCoupons > 0) && (
           <div className="card lg:col-span-5">
             <div className="flex items-center gap-2 mb-3">
               <Gift className="h-5 w-5 text-brand-teal" strokeWidth={1.8} />
@@ -216,8 +207,9 @@ function Profile({ token }) {
             {customerId && (
               <div className="mb-4">
                 <p className="text-sm text-slate-600 mb-2">
-                  Share your Customer ID with a new student. When they register with it and pay for
-                  their first gas refill or subscription, you earn a delivery-fee credit automatically.
+                  Share your Customer ID with a new student. When they register with it you get{' '}
+                  <strong>10% off one gas order</strong> — and <strong>another 10% off</strong> once they pay for a gas
+                  order of <strong>3&nbsp;kg or more</strong>. Both apply automatically at your checkout.
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="input-field flex-1 font-mono text-sm bg-slate-50">{customerId}</code>
@@ -236,10 +228,10 @@ function Profile({ token }) {
               </div>
             )}
 
-            {referralBalance > 0 && (
+            {referralCoupons > 0 && (
               <p className="alert-success">
-                You have &#8358;{referralBalance.toLocaleString()} in referral credit — it's applied
-                automatically as an option at checkout on your next gas refill or Eazy Market order.
+                You have {referralCoupons} referral discount{referralCoupons === 1 ? '' : 's'} available — 10% off your
+                next gas order{referralCoupons === 1 ? '' : 's'}, applied automatically at checkout.
               </p>
             )}
           </div>

@@ -43,7 +43,7 @@ function CartLine({ item }) {
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-brand-navy">{item.snapshot.name}</p>
+        <p className="font-medium leading-snug text-brand-navy">{item.snapshot.name}</p>
         {item.snapshot.variant_label && <p className="text-xs text-slate-400">{item.snapshot.variant_label}</p>}
         <p className="figure mt-0.5 text-sm text-slate-600">{formatNaira(item.snapshot.price)}</p>
       </div>
@@ -264,7 +264,7 @@ function Cart({ token }) {
           </p>
         ) : (
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <button type="button" onClick={() => navigate('/')} className="btn-outline flex-1">
+            <button type="button" onClick={() => navigate('/home')} className="btn-outline flex-1">
               <PlusCircle className="h-4 w-4" strokeWidth={2} />
               Add to My Gas Refill Order
             </button>

@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CalendarCheck, Flame, Copy, ArrowRightLeft, Droplets, Clock, ShoppingCart, Info } from 'lucide-react'
-import { apiFetch, formatNaira, formatDate } from '../api'
+import { CalendarCheck, Flame, Copy, ArrowRightLeft, Droplets, Clock, ShoppingCart, Info, Image as ImageIcon, X } from 'lucide-react'
+import { apiFetch, formatNaira, formatDate, resolveImageUrl } from '../api'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
 import StatusBadge from '../StatusBadge'
 import { useToast } from '../toastContext'
 import { useCart } from '../cartContext'
+import { useCurrentUser } from '../userContext'
+import CylinderImageUpload from '../CylinderImageUpload'
 import AddToDeliveryModal from '../components/shop/AddToDeliveryModal'
 import SubscriptionPreview from '../components/landing/SubscriptionPreview'
 
@@ -31,6 +33,10 @@ function TransferForm({ subscriber, token, onDone }) {
   const { show } = useToast()
   const [customerId, setCustomerId] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const pendingRefill = subscriber?.refills?.find((r) => r.status === 'pending')
+  // 'terminate' = cancel my pending refill, recipient gets everything.
+  // 'carry'     = keep my pending refill for me, recipient gets the rest.
+  const [pendingChoice, setPendingChoice] = useState('terminate')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -40,7 +46,10 @@ function TransferForm({ subscriber, token, onDone }) {
       const response = await apiFetch(`/subscribers/${subscriber.id}/transfer`, {
         method: 'POST',
         token,
-        body: { customer_id: customerId },
+        body: {
+          customer_id: customerId,
+          ...(pendingRefill ? { pending_refill: pendingChoice } : {}),
+        },
       })
       const data = await response.json().catch(() => null)
 
@@ -61,18 +70,53 @@ function TransferForm({ subscriber, token, onDone }) {
   return (
     <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 rounded-xl bg-brand-bg p-4">
       <div>
-        <label className="label-text">Recipient's Customer ID</label>
+        <label className="label-text">Recipient&apos;s Customer ID</label>
         <p className="mb-1.5 text-xs text-slate-400">
-          They must already have their own account and Customer ID — this hands your remaining kg over to them.
+          Any student with an account works — they don&apos;t need to have subscribed before. This hands your
+          remaining kg (the whole plan) over to them.
         </p>
         <input
           value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
+          onChange={(e) => setCustomerId(e.target.value.trim())}
           placeholder="DEL-2026-0001"
           required
           className="input-field"
         />
       </div>
+
+      {pendingRefill && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-800">
+            You have a pending refill ({pendingRefill.kg_requested} kg) that hasn&apos;t been delivered yet.
+          </p>
+          <div className="mt-2 flex flex-col gap-2 text-sm text-slate-700">
+            <label className="flex items-start gap-2">
+              <input
+                type="radio"
+                name="pending-refill"
+                checked={pendingChoice === 'terminate'}
+                onChange={() => setPendingChoice('terminate')}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 accent-brand-teal"
+              />
+              <span>Cancel it and transfer the whole {subscriber.remaining_kg} kg.</span>
+            </label>
+            <label className="flex items-start gap-2">
+              <input
+                type="radio"
+                name="pending-refill"
+                checked={pendingChoice === 'carry'}
+                onChange={() => setPendingChoice('carry')}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 accent-brand-teal"
+              />
+              <span>
+                Keep it for me — I still get that refill, and{' '}
+                {Math.max(0, Number(subscriber.remaining_kg) - Number(pendingRefill.kg_requested || 0))} kg transfers.
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2">
         <button type="button" onClick={() => onDone(false)} disabled={submitting} className="btn-outline">
           Cancel
@@ -89,6 +133,7 @@ function MySubscription({ token }) {
   const { show } = useToast()
   const cart = useCart()
   const navigate = useNavigate()
+  const { user, refresh: refreshUser } = useCurrentUser()
   const [subscriber, setSubscriber] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -98,7 +143,12 @@ function MySubscription({ token }) {
   const [refillKg, setRefillKg] = useState('')
   const [attachableOrders, setAttachableOrders] = useState([])
   const [attachOrderId, setAttachOrderId] = useState('')
+  // Unpaid cart items → turned into a product order, linked to this refill,
+  // and paid for on the next screen. Opt-out (defaults on), same as the gas
+  // order wizard's bundle toggle.
+  const [bundleCart, setBundleCart] = useState(true)
   const [addToDeliveryOpen, setAddToDeliveryOpen] = useState(false)
+  const [cylinderModalOpen, setCylinderModalOpen] = useState(false)
 
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -140,6 +190,7 @@ function MySubscription({ token }) {
 
   const daysLeft = useMemo(() => daysRemaining(subscriber?.ends_at), [subscriber])
   const hasPendingRefill = subscriber?.refills?.some((r) => r.status === 'pending')
+  const hasCylinderImage = Boolean(user?.cylinder_image_url)
   const remainingKg = subscriber ? Number(subscriber.remaining_kg ?? 0) : 0
   const isExpired = subscriber?.ends_at ? new Date(subscriber.ends_at).getTime() < Date.now() : false
   const kgExhausted = subscriber?.status === 'active' && remainingKg <= 0
@@ -171,12 +222,52 @@ function MySubscription({ token }) {
   }
 
   const submitRefillRequest = async () => {
+    if (!hasCylinderImage) {
+      show('Please add a cylinder photo before requesting a refill.', { type: 'error' })
+      return
+    }
     setRequestingRefill(true)
     try {
+      // Two independent ways a cart can ride on this refill (parity with the
+      // gas order wizard):
+      //  - attached_product_order_id: an already-paid cart, just a checkbox.
+      //  - product_order_id: unpaid cart items turned into a product order
+      //    now, linked to the refill, then paid for on the next screen (the
+      //    refill itself is free, so there's nothing to fold the charge into).
+      const bundlingCart = bundleCart && cart.itemCount > 0
+      const attachedProductOrderId = attachOrderId || undefined
+      let bundledProductOrderId
+
+      if (bundlingCart) {
+        const poRes = await apiFetch('/product-orders', {
+          method: 'POST',
+          token,
+          body: {
+            items: cart.items.map((i) => ({
+              product_id: i.productId,
+              product_variant_id: i.variantId,
+              quantity: i.quantity,
+            })),
+            hostel_address: subscriber?.recipient_address || undefined,
+            use_referral_credit: true,
+          },
+        })
+        const po = await poRes.json().catch(() => null)
+        if (!poRes.ok) {
+          show(po?.message || Object.values(po?.errors || {})[0]?.[0] || 'Could not prepare your cart.', { type: 'error' })
+          return
+        }
+        bundledProductOrderId = po.id
+      }
+
       const response = await apiFetch('/refills', {
         method: 'POST',
         token,
-        body: { kg: refillKg, product_order_id: attachOrderId || undefined },
+        body: {
+          kg: refillKg,
+          product_order_id: bundledProductOrderId,
+          attached_product_order_id: attachedProductOrderId,
+        },
       })
       const data = await response.json().catch(() => null)
 
@@ -185,10 +276,27 @@ function MySubscription({ token }) {
         return
       }
 
+      if (bundlingCart && bundledProductOrderId) {
+        cart.clear()
+        const payRes = await apiFetch(`/product-orders/${bundledProductOrderId}/pay`, { method: 'POST', token })
+        const payData = await payRes.json().catch(() => null)
+        if (!payRes.ok || !payData?.authorization_url) {
+          show('Refill requested — but your cart payment could not start. Pay for it from My Shop Orders.', { type: 'error' })
+          setRefillKg('')
+          setAttachOrderId('')
+          await load()
+          loadAttachableOrders()
+          return
+        }
+        show('Refill requested — redirecting you to pay for your cart…', { type: 'success', duration: 2500 })
+        window.location.href = payData.authorization_url
+        return
+      }
+
       show(
-        attachOrderId
-          ? "Refill requested — your cart order will be delivered on the same trip."
-          : 'Refill requested — we\'ll be in touch to deliver it.',
+        attachedProductOrderId
+          ? 'Refill requested — your paid cart will be delivered on the same trip.'
+          : "Refill requested — we'll be in touch to deliver it.",
         { type: 'success' }
       )
       setRefillKg('')
@@ -388,6 +496,41 @@ function MySubscription({ token }) {
           </p>
 
           <form onSubmit={handleRequestRefill} className="mt-4 flex flex-col gap-3">
+            {/* Same cylinder-photo requirement as a normal gas order — the
+                rider needs it to identify the cylinder at pickup. The upload
+                itself happens in a modal; this row is just the status +
+                trigger. Uploading also updates the profile default. */}
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+              {hasCylinderImage ? (
+                <img
+                  src={resolveImageUrl(user.cylinder_image_url)}
+                  alt="Cylinder"
+                  className="h-12 w-12 flex-shrink-0 rounded-lg object-cover ring-1 ring-slate-200"
+                />
+              ) : (
+                <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-brand-ember/10 text-brand-ember">
+                  <ImageIcon className="h-5 w-5" strokeWidth={1.8} />
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-brand-navy">
+                  Cylinder photo {hasCylinderImage ? '' : <span className="text-brand-ember">— required</span>}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {hasCylinderImage
+                    ? 'Our rider uses this to identify your cylinder on delivery.'
+                    : 'Add one before requesting a refill.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCylinderModalOpen(true)}
+                className="btn-outline flex-shrink-0 whitespace-nowrap !py-1.5"
+              >
+                {hasCylinderImage ? 'Change' : 'Add photo'}
+              </button>
+            </div>
+
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1 sm:max-w-[10rem]">
                 <label className="label-text" htmlFor="refill-kg">Kg needed</label>
@@ -407,13 +550,42 @@ function MySubscription({ token }) {
               </div>
               <button
                 type="submit"
-                disabled={requestingRefill || hasPendingRefill}
+                disabled={requestingRefill || hasPendingRefill || !hasCylinderImage}
                 className="btn-primary flex-shrink-0 whitespace-nowrap"
               >
                 <Droplets className="h-4 w-4" strokeWidth={2} />
-                {hasPendingRefill ? 'Refill Already Requested' : requestingRefill ? 'Requesting…' : 'Request a Refill'}
+                {hasPendingRefill
+                  ? 'Refill Already Requested'
+                  : !hasCylinderImage
+                    ? 'Add a cylinder photo first'
+                    : requestingRefill
+                      ? 'Requesting…'
+                      : bundleCart && cart.itemCount > 0
+                        ? 'Request Refill & Pay Cart'
+                        : 'Request a Refill'}
               </button>
             </div>
+
+            {cart.itemCount > 0 && !hasPendingRefill && (
+              <label className="flex items-start gap-2.5 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={bundleCart}
+                  onChange={(e) => setBundleCart(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 accent-brand-teal"
+                />
+                <span className="flex items-start gap-2 text-slate-600">
+                  <ShoppingCart className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-teal" strokeWidth={2} />
+                  <span>
+                    <span className="font-medium text-brand-navy">Deliver your cart on this same trip</span> —{' '}
+                    <Link to="/cart" onClick={(e) => e.stopPropagation()} className="underline hover:text-brand-teal">
+                      {cart.itemCount} item{cart.itemCount === 1 ? '' : 's'}, {formatNaira(cart.subtotal)}
+                    </Link>
+                    . The refill stays free — you&apos;ll pay just for the cart on the next screen.
+                  </span>
+                </span>
+              </label>
+            )}
 
             {attachableOrders.length > 0 && !hasPendingRefill && (
               <label className="flex items-start gap-2.5 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm">
@@ -440,7 +612,7 @@ function MySubscription({ token }) {
         </div>
       )}
 
-      {token && cart.itemCount > 0 && (
+      {token && cart.itemCount > 0 && !isUsableSubscription && (
         <Link
           to="/cart"
           className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-brand-navy transition-colors hover:bg-brand-teal/10"
@@ -541,6 +713,37 @@ function MySubscription({ token }) {
         onConfirm={handleConfirmSubscribe}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {cylinderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setCylinderModalOpen(false)} aria-hidden="true" />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h3 className="font-heading text-lg font-bold text-brand-navy">
+                  {hasCylinderImage ? 'Update cylinder photo' : 'Add cylinder photo'}
+                </h3>
+                <p className="mt-0.5 text-sm text-slate-500">Our rider uses this to identify your cylinder on delivery.</p>
+              </div>
+              <button
+                onClick={() => setCylinderModalOpen(false)}
+                aria-label="Close"
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X className="h-5 w-5" strokeWidth={1.8} />
+              </button>
+            </div>
+            <CylinderImageUpload
+              token={token}
+              initialImageUrl={user?.cylinder_image_url}
+              onUploaded={() => {
+                refreshUser?.()
+                setCylinderModalOpen(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

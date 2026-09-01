@@ -93,7 +93,7 @@ function Register({ setToken, setRole, setPermissions }) {
       localStorage.setItem('role', role || '')
       setPermissions(permissions)
       const stored = takePostAuthRedirect()
-      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : from || stored || '/', { replace: true })
+      navigate(role === 'admin' || role === 'super_admin' ? '/admin' : from || stored || '/home', { replace: true })
     } catch {
       setError('Could not reach the server.')
     } finally {

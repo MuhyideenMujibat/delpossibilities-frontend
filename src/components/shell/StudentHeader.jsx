@@ -49,7 +49,7 @@ function StudentHeader({ token, role, onLogout }) {
     <header className="sticky top-0 z-30 flex-shrink-0 border-b border-slate-100 bg-white/85 backdrop-blur">
       <div className="flex h-[52px] items-center justify-between px-4 sm:px-6 md:px-10">
         <div className="flex items-center gap-3">
-          <Link to="/home" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <img src={logo} alt="D'EL-Possibilities logo" className="h-7 w-7 rounded-full object-cover" />
             <span className="hidden font-heading text-sm font-bold text-brand-navy lg:inline">D&apos;EL-POSSIBILITIES</span>
           </Link>

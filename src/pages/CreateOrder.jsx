@@ -116,8 +116,9 @@ function CreateOrder({ token }) {
   // exactly as easy for anyone not using the shop.
   const [bundleCart, setBundleCart] = useState(true)
   const [pendingProductOrderId, setPendingProductOrderId] = useState(null)
-  const [referralCreditBalance, setReferralCreditBalance] = useState(0)
-  const [useReferralCredit, setUseReferralCredit] = useState(true)
+  // Number of unused 10%-off-gas coupons the student holds (from registering
+  // with a referral code, or from referring someone who ordered 3 kg+).
+  const [referralCoupons, setReferralCoupons] = useState(0)
   // Paid cart orders not yet riding on any delivery — eligible to attach to
   // this order instead of bundling a fresh one (mirrors the identical
   // pattern in MySubscription.jsx for subscriber refills).
@@ -180,7 +181,7 @@ function CreateOrder({ token }) {
       }
     }
     if (user.cylinder_image_url) setExistingImageUrl(user.cylinder_image_url)
-    setReferralCreditBalance(Number(user.referral_credit_balance || 0))
+    setReferralCoupons(Number(user.referral_discount_available || 0))
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [user])
 
@@ -274,7 +275,9 @@ function CreateOrder({ token }) {
   const loyaltyDiscount = loyalty && pricePerKg !== null && loyaltyDiscountableKg > 0
     ? pricePerKg * loyaltyDiscountableKg * (loyalty.discountPercent / 100)
     : 0
-  const referralCreditApplied = useReferralCredit ? Math.min(deliveryFee, referralCreditBalance) : 0
+  // A held coupon auto-applies: 10% off the gas cost (base/offer rate,
+  // before loyalty), its own line item. Mirrors OrderController::store.
+  const referralDiscount = referralCoupons > 0 && gasCost !== null ? Math.round(gasCost * 0.1 * 100) / 100 : 0
   // Whether a fresh, still-unpaid cart is actually going to be bundled into
   // this same charge (mirrors ensureProductOrder's own condition exactly).
   // Independent of attachOrderId: a student can attach an already-paid cart
@@ -291,7 +294,7 @@ function CreateOrder({ token }) {
     return tier ? Number(tier.fee) : 0
   }, [eazyMarketTiers, cartEazyMarketSubtotal])
   const shopChargeNow = bundlingFreshCart ? cart.subtotal + cartEazyMarketFee : 0
-  const total = gasCost !== null ? gasCost - loyaltyDiscount + deliveryFee - referralCreditApplied + shopChargeNow : null
+  const total = gasCost !== null ? Math.max(gasCost - loyaltyDiscount - referralDiscount, 0) + deliveryFee + shopChargeNow : null
   // Ordering for someone else means their cylinder photo shouldn't stand in
   // for — or overwrite — the requester's own saved default.
   const usableExistingImageUrl = forSomeoneElse ? null : existingImageUrl
@@ -408,9 +411,6 @@ function CreateOrder({ token }) {
     if (attachOrderId) {
       formData.append('attached_product_order_id', attachOrderId)
     }
-    if (useReferralCredit && referralCreditBalance > 0) {
-      formData.append('use_referral_credit', '1')
-    }
     if (imageFile) {
       formData.append('cylinder_image', imageFile)
     }
@@ -526,30 +526,22 @@ function CreateOrder({ token }) {
     }
     // The photo can't be serialized — hand it over in memory instead.
     setPendingOrderImage(cylinderImage)
-    setPostAuthRedirect('/')
-    navigate('/login', { state: { from: '/' } })
+    setPostAuthRedirect('/home')
+    navigate('/login', { state: { from: '/home' } })
   }
 
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title="Create Order" subtitle="Request a gas refill for delivery to your hostel." icon={PlusCircle} />
 
-      {referralCreditBalance > 0 && (
-        <label className="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm">
-          <input
-            type="checkbox"
-            checked={useReferralCredit}
-            onChange={(e) => setUseReferralCredit(e.target.checked)}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-brand-teal"
-          />
-          <span className="flex items-start gap-2">
-            <Gift className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-teal" strokeWidth={2} />
-            <span>
-              <span className="font-medium text-brand-navy">Use your referral credit</span> — you have{' '}
-              {formatNaira(referralCreditBalance)} available to offset this order's delivery fee.
-            </span>
+      {referralCoupons > 0 && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm">
+          <Gift className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-teal" strokeWidth={2} />
+          <span>
+            <span className="font-medium text-brand-navy">Referral discount</span> — 10% off this order&apos;s gas
+            cost is applied automatically{referralCoupons > 1 ? ` (${referralCoupons} available)` : ''}.
           </span>
-        </label>
+        </div>
       )}
 
       {/* Two independent add-ons — a student with a paid cart to deliver AND
@@ -702,10 +694,10 @@ function CreateOrder({ token }) {
                   <span className="figure font-medium text-brand-navy">{formatNaira(deliveryFee)}</span>
                 </div>
                 {renderShopBreakdownLines()}
-                {referralCreditApplied > 0 && (
+                {referralDiscount > 0 && (
                   <div className="mt-1 flex items-center justify-between">
-                    <span className="text-brand-teal">Referral credit</span>
-                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralCreditApplied)}</span>
+                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}
                 <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2">
@@ -863,10 +855,10 @@ function CreateOrder({ token }) {
                   <span className="figure font-medium text-brand-navy">{formatNaira(deliveryFee)}</span>
                 </div>
                 {renderShopBreakdownLines()}
-                {referralCreditApplied > 0 && (
+                {referralDiscount > 0 && (
                   <div className="mt-1 flex items-center justify-between">
-                    <span className="text-brand-teal">Referral credit</span>
-                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralCreditApplied)}</span>
+                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}
                 <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2">
@@ -911,10 +903,10 @@ function CreateOrder({ token }) {
                   <span className="figure font-medium text-brand-navy">{formatNaira(deliveryFee)}</span>
                 </div>
                 {renderShopBreakdownLines()}
-                {referralCreditApplied > 0 && (
+                {referralDiscount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-brand-teal">Referral credit</span>
-                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralCreditApplied)}</span>
+                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between border-t border-slate-100 pt-2">

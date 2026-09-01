@@ -25,7 +25,6 @@ function AdminSettings({ token }) {
   const [sessionEndsAt, setSessionEndsAt] = useState('')
   const [semesterStartsAt, setSemesterStartsAt] = useState('')
   const [semesterEndsAt, setSemesterEndsAt] = useState('')
-  const [referralRewardAmount, setReferralRewardAmount] = useState('')
   const [investmentBankName, setInvestmentBankName] = useState('')
   const [investmentAccountName, setInvestmentAccountName] = useState('')
   const [investmentAccountNumber, setInvestmentAccountNumber] = useState('')
@@ -66,7 +65,6 @@ function AdminSettings({ token }) {
         setSessionEndsAt(toDateInputValue(data.session_ends_at))
         setSemesterStartsAt(toDateInputValue(data.semester_starts_at))
         setSemesterEndsAt(toDateInputValue(data.semester_ends_at))
-        setReferralRewardAmount(data.referral_reward_amount || '')
         setInvestmentBankName(data.investment_bank_name || '')
         setInvestmentAccountName(data.investment_account_name || '')
         setInvestmentAccountNumber(data.investment_account_number || '')
@@ -115,7 +113,6 @@ function AdminSettings({ token }) {
           session_ends_at: sessionEndsAt || null,
           semester_starts_at: semesterStartsAt || null,
           semester_ends_at: semesterEndsAt || null,
-          referral_reward_amount: referralRewardAmount || null,
           investment_bank_name: investmentBankName || null,
           investment_account_name: investmentAccountName || null,
           investment_account_number: investmentAccountNumber || null,
@@ -149,7 +146,6 @@ function AdminSettings({ token }) {
       setSessionEndsAt(toDateInputValue(data.session_ends_at))
       setSemesterStartsAt(toDateInputValue(data.semester_starts_at))
       setSemesterEndsAt(toDateInputValue(data.semester_ends_at))
-      setReferralRewardAmount(data.referral_reward_amount || '')
       setInvestmentBankName(data.investment_bank_name || '')
       setInvestmentAccountName(data.investment_account_name || '')
       setInvestmentAccountNumber(data.investment_account_number || '')
@@ -403,27 +399,15 @@ function AdminSettings({ token }) {
           <div className="rounded-xl border border-slate-200 p-4">
             <span className="flex items-center gap-2 text-sm font-semibold text-brand-navy">
               <Gift className="h-4 w-4 text-brand-teal" strokeWidth={2} />
-              Referral Reward
+              Referral Rewards
             </span>
             <span className="block text-sm text-slate-500">
-              When a student refers a new registrant who uses their Customer ID, and that new student pays for
-              their first gas refill or subscription, the referrer earns this amount as delivery-fee credit —
-              once per referred student.
+              When a new student registers with someone&apos;s Customer ID, the <strong>referrer</strong> gets
+              <strong> 10% off one gas order</strong>. When that student then pays for a gas order of
+              <strong> 3&nbsp;kg or more</strong>, the referrer gets <strong>another 10% off</strong> — once per
+              referred student. The student who used the code gets no discount. Applied automatically at
+              checkout; nothing to configure here.
             </span>
-
-            <div className="mt-4">
-              <label className="label-text" htmlFor="referral-reward-amount">Reward amount (per referred student)</label>
-              <input
-                id="referral-reward-amount"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 400"
-                value={referralRewardAmount}
-                onChange={(e) => setReferralRewardAmount(e.target.value)}
-                className="input-field"
-              />
-            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 p-4">

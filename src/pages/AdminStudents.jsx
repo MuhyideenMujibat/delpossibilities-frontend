@@ -176,6 +176,57 @@ function AdminStudents({ token }) {
                 </table>
               </div>
 
+              {/* table-card is desktop-only (hidden md:block) — this card
+                  stack is the phone view of the same rows. */}
+              <div className="flex flex-col gap-3 md:hidden">
+                {visibleStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    onClick={() => navigate(`/admin/students/${student.id}`)}
+                    className="cursor-pointer rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-brand-navy">{student.name}</p>
+                        <p className="truncate text-xs text-slate-400">{student.email}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteTarget(student)
+                        }}
+                        aria-label={`Remove ${student.name}`}
+                        className="btn-ghost flex-shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={1.8} />
+                      </button>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
+                      <span className="text-slate-400">Hostel</span>
+                      <span className="truncate text-right">{student.hostel || '—'}</span>
+                      <span className="text-slate-400">Phone</span>
+                      <span className="text-right">
+                        {student.phone ? (
+                          <a
+                            href={`tel:${student.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-brand-teal hover:underline"
+                          >
+                            {student.phone}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </span>
+                      <span className="text-slate-400">Orders</span>
+                      <span className="figure text-right">{student.orders_count ?? 0}</span>
+                      <span className="text-slate-400">Joined</span>
+                      <span className="text-right text-xs text-slate-400">{formatDate(student.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <PaginationControls
                 page={Math.min(page, pageCount)}
                 pageSize={pageSize}

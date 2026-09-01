@@ -28,6 +28,10 @@ function PaymentCallback({ token }) {
   const [productOrder, setProductOrder] = useState(null)
   const isSubscription = isSubscriptionReference(reference)
   const isProductOrder = isProductOrderReference(reference)
+  // A standalone cart payment that's actually riding on a subscription
+  // refill (built from / attached to a refill request) — send them back to
+  // My Subscription rather than the empty cart.
+  const productOrderOnRefill = Boolean(productOrder && (productOrder.refill || productOrder.attaching_refill))
 
   useEffect(() => {
     let cancelled = false
@@ -216,7 +220,9 @@ function PaymentCallback({ token }) {
               {isSubscription
                 ? 'Your subscription is now active.'
                 : isProductOrder
-                  ? 'Your order has been received.'
+                  ? productOrderOnRefill
+                    ? 'Your cart is set — it will be delivered with your subscription refill.'
+                    : 'Your order has been received.'
                   : 'Your gas refill order has been received.'}
             </p>
 
@@ -314,10 +320,20 @@ function PaymentCallback({ token }) {
             )}
 
             <Link
-              to={isSubscription ? '/subscription' : isProductOrder ? '/cart' : order ? `/orders/${order.id}` : '/orders'}
+              to={
+                isSubscription
+                  ? '/subscription'
+                  : isProductOrder
+                    ? productOrderOnRefill ? '/subscription' : '/cart'
+                    : order ? `/orders/${order.id}` : '/orders'
+              }
               className="btn-primary mt-6 w-full"
             >
-              {isSubscription ? 'View My Subscription' : isProductOrder ? 'Back to My Cart' : 'Track This Order'}
+              {isSubscription
+                ? 'View My Subscription'
+                : isProductOrder
+                  ? productOrderOnRefill ? 'View My Subscription' : 'Back to My Cart'
+                  : 'Track This Order'}
             </Link>
           </>
         )}
