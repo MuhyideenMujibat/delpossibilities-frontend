@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Megaphone, Send, Tag, Gift, Landmark } from 'lucide-react'
+import { Megaphone, Send, Tag, Gift, Landmark, Truck } from 'lucide-react'
 import { apiFetch, formatNaira } from '../api'
 import PageHeader from '../components/PageHeader'
 
@@ -9,11 +9,41 @@ import PageHeader from '../components/PageHeader'
 // Y-m-d portion.
 const toDateInputValue = (value) => (value ? value.slice(0, 10) : '')
 
+// "14:00" -> "2pm", "16:20" -> "4:20pm" — minutes only shown when non-zero,
+// matching how the announcement is meant to read on the student ticker.
+const formatSlotTime = (value) => {
+  if (!value) return ''
+  const [h, m] = value.split(':').map(Number)
+  const period = h >= 12 ? 'pm' : 'am'
+  const h12 = ((h + 11) % 12) + 1
+  return m ? `${h12}:${String(m).padStart(2, '0')}${period}` : `${h12}${period}`
+}
+
+// Builds the sentence shown to students from whichever slots are filled —
+// a slot only counts once both its pickup and delivery time are set, so a
+// half-filled row is silently skipped rather than producing a broken
+// sentence. Returns '' when neither slot is complete, leaving the textarea
+// below for the admin to hand-type instead.
+const composeAnnouncement = (s1p, s1d, s2p, s2d) => {
+  const slots = []
+  if (s1p && s1d) slots.push(`pickup closes at ${formatSlotTime(s1p)} — deliveries run until ${formatSlotTime(s1d)}`)
+  if (s2p && s2d) slots.push(`pickup closes at ${formatSlotTime(s2p)} — deliveries run until ${formatSlotTime(s2d)}`)
+  if (!slots.length) return ''
+  if (slots.length === 1) return `Today's ${slots[0]}.`
+  return `Today's first ${slots[0]}. Second ${slots[1]}.`
+}
+
 function AdminSettings({ token }) {
   const [price, setPrice] = useState(null)
   const [newPrice, setNewPrice] = useState('')
   const [deliveryFee, setDeliveryFee] = useState('')
   const [offCampusDeliveryFee, setOffCampusDeliveryFee] = useState('')
+  const [broadcastActive, setBroadcastActive] = useState(false)
+  const [broadcastText, setBroadcastText] = useState('')
+  const [slot1Pickup, setSlot1Pickup] = useState('')
+  const [slot1Delivery, setSlot1Delivery] = useState('')
+  const [slot2Pickup, setSlot2Pickup] = useState('')
+  const [slot2Delivery, setSlot2Delivery] = useState('')
   const [offerActive, setOfferActive] = useState(false)
   const [offerTitle, setOfferTitle] = useState('')
   const [offerMessage, setOfferMessage] = useState('')
@@ -54,6 +84,12 @@ function AdminSettings({ token }) {
         setNewPrice(currentPrice ?? '')
         setDeliveryFee(data.delivery_fee ?? data.data?.delivery_fee ?? '')
         setOffCampusDeliveryFee(data.off_campus_delivery_fee ?? data.data?.off_campus_delivery_fee ?? '')
+        setBroadcastActive(Boolean(data.broadcast_active))
+        setBroadcastText(data.broadcast_message || '')
+        setSlot1Pickup(data.broadcast_slot1_pickup || '')
+        setSlot1Delivery(data.broadcast_slot1_delivery || '')
+        setSlot2Pickup(data.broadcast_slot2_pickup || '')
+        setSlot2Delivery(data.broadcast_slot2_delivery || '')
         setOfferActive(Boolean(data.offer_active))
         setOfferTitle(data.offer_title || '')
         setOfferMessage(data.offer_message || '')
@@ -102,6 +138,12 @@ function AdminSettings({ token }) {
           price_per_kg: newPrice,
           delivery_fee: deliveryFee || 0,
           off_campus_delivery_fee: offCampusDeliveryFee || 0,
+          broadcast_active: broadcastActive,
+          broadcast_message: broadcastText || null,
+          broadcast_slot1_pickup: slot1Pickup || null,
+          broadcast_slot1_delivery: slot1Delivery || null,
+          broadcast_slot2_pickup: slot2Pickup || null,
+          broadcast_slot2_delivery: slot2Delivery || null,
           offer_active: offerActive,
           offer_title: offerTitle,
           offer_message: offerMessage,
@@ -135,6 +177,12 @@ function AdminSettings({ token }) {
       setNewPrice(updatedPrice)
       setDeliveryFee(data.delivery_fee ?? data.data?.delivery_fee ?? deliveryFee)
       setOffCampusDeliveryFee(data.off_campus_delivery_fee ?? data.data?.off_campus_delivery_fee ?? offCampusDeliveryFee)
+      setBroadcastActive(Boolean(data.broadcast_active))
+      setBroadcastText(data.broadcast_message || '')
+      setSlot1Pickup(data.broadcast_slot1_pickup || '')
+      setSlot1Delivery(data.broadcast_slot1_delivery || '')
+      setSlot2Pickup(data.broadcast_slot2_pickup || '')
+      setSlot2Delivery(data.broadcast_slot2_delivery || '')
       setOfferActive(Boolean(data.offer_active))
       setOfferTitle(data.offer_title || '')
       setOfferMessage(data.offer_message || '')
@@ -192,6 +240,117 @@ function AdminSettings({ token }) {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Price Settings" subtitle="Manage pricing, offers, and student announcements." icon={Tag} />
+
+      <div className="card mb-6 border-2 border-brand-teal/30">
+        <span className="flex items-center gap-2 text-sm font-semibold text-brand-navy">
+          <Truck className="h-4 w-4 text-brand-teal" strokeWidth={2} />
+          Pickup &amp; Delivery Announcement
+        </span>
+        <span className="block text-sm text-slate-500">
+          Scrolls as a banner under the header for every logged-in student, on every page — the quickest way to
+          reach everyone when today&apos;s pickup or delivery time changes. Update it as often as you need; turning
+          it off keeps the text saved for next time.
+        </span>
+
+        <label className="mt-4 flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={broadcastActive}
+            onChange={(e) => setBroadcastActive(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-teal"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-brand-navy">Show this announcement now</span>
+            <span className="block text-sm text-slate-500">Only shown while both this is checked and the message below isn&apos;t empty.</span>
+          </span>
+        </label>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Slot 1</p>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div>
+                <label className="label-text" htmlFor="slot1-pickup">Pickup closes</label>
+                <input
+                  id="slot1-pickup"
+                  type="time"
+                  value={slot1Pickup}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSlot1Pickup(value)
+                    setBroadcastText(composeAnnouncement(value, slot1Delivery, slot2Pickup, slot2Delivery) || broadcastText)
+                  }}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="label-text" htmlFor="slot1-delivery">Deliveries until</label>
+                <input
+                  id="slot1-delivery"
+                  type="time"
+                  value={slot1Delivery}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSlot1Delivery(value)
+                    setBroadcastText(composeAnnouncement(slot1Pickup, value, slot2Pickup, slot2Delivery) || broadcastText)
+                  }}
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Slot 2 (optional)</p>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div>
+                <label className="label-text" htmlFor="slot2-pickup">Pickup closes</label>
+                <input
+                  id="slot2-pickup"
+                  type="time"
+                  value={slot2Pickup}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSlot2Pickup(value)
+                    setBroadcastText(composeAnnouncement(slot1Pickup, slot1Delivery, value, slot2Delivery) || broadcastText)
+                  }}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="label-text" htmlFor="slot2-delivery">Deliveries until</label>
+                <input
+                  id="slot2-delivery"
+                  type="time"
+                  value={slot2Delivery}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setSlot2Delivery(value)
+                    setBroadcastText(composeAnnouncement(slot1Pickup, slot1Delivery, slot2Pickup, value) || broadcastText)
+                  }}
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="label-text" htmlFor="broadcast-text">Announcement text</label>
+          <textarea
+            id="broadcast-text"
+            rows="2"
+            maxLength={500}
+            placeholder="e.g. Today's pickup closes at 6pm — deliveries run until 8pm."
+            value={broadcastText}
+            onChange={(e) => setBroadcastText(e.target.value)}
+            className="input-field resize-y"
+          />
+          <p className="mt-1 text-xs text-slate-400">
+            {broadcastText.length}/500 — auto-filled from the times above; edit freely for custom wording.
+          </p>
+        </div>
+      </div>
 
       <div className="card">
         {price !== null && (
