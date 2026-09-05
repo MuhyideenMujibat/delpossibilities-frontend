@@ -106,6 +106,7 @@ function CreateOrder({ token }) {
   const [deliveryFeeHostel, setDeliveryFeeHostel] = useState(0)
   const [offer, setOffer] = useState(null)
   const [loyalty, setLoyalty] = useState(null)
+  const [referralDiscountPercent, setReferralDiscountPercent] = useState(10)
   const [error, setError] = useState('')
   const [needsProfileImage, setNeedsProfileImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -152,6 +153,7 @@ function CreateOrder({ token }) {
             discountPercent: Number(data.loyalty_discount_percent),
           })
         }
+        if (data?.referral_discount_percent) setReferralDiscountPercent(Number(data.referral_discount_percent))
       })
       .catch(() => {})
   }, [])
@@ -275,9 +277,12 @@ function CreateOrder({ token }) {
   const loyaltyDiscount = loyalty && pricePerKg !== null && loyaltyDiscountableKg > 0
     ? pricePerKg * loyaltyDiscountableKg * (loyalty.discountPercent / 100)
     : 0
-  // A held coupon auto-applies: 10% off the gas cost (base/offer rate,
-  // before loyalty), its own line item. Mirrors OrderController::store.
-  const referralDiscount = referralCoupons > 0 && gasCost !== null ? Math.round(gasCost * 0.1 * 100) / 100 : 0
+  // A held coupon auto-applies: an admin-set percent off the gas cost
+  // (base/offer rate, before loyalty), its own line item. Mirrors
+  // OrderController::store.
+  const referralDiscount = referralCoupons > 0 && gasCost !== null
+    ? Math.round(gasCost * (referralDiscountPercent / 100) * 100) / 100
+    : 0
   // Whether a fresh, still-unpaid cart is actually going to be bundled into
   // this same charge (mirrors ensureProductOrder's own condition exactly).
   // Independent of attachOrderId: a student can attach an already-paid cart
@@ -538,8 +543,8 @@ function CreateOrder({ token }) {
         <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm">
           <Gift className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-teal" strokeWidth={2} />
           <span>
-            <span className="font-medium text-brand-navy">Referral discount</span> — 10% off this order&apos;s gas
-            cost is applied automatically{referralCoupons > 1 ? ` (${referralCoupons} available)` : ''}.
+            <span className="font-medium text-brand-navy">Referral discount</span> — {referralDiscountPercent}% off
+            this order&apos;s gas cost is applied automatically{referralCoupons > 1 ? ` (${referralCoupons} available)` : ''}.
           </span>
         </div>
       )}
@@ -696,7 +701,7 @@ function CreateOrder({ token }) {
                 {renderShopBreakdownLines()}
                 {referralDiscount > 0 && (
                   <div className="mt-1 flex items-center justify-between">
-                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="text-brand-teal">Referral discount ({referralDiscountPercent}%)</span>
                     <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}
@@ -857,7 +862,7 @@ function CreateOrder({ token }) {
                 {renderShopBreakdownLines()}
                 {referralDiscount > 0 && (
                   <div className="mt-1 flex items-center justify-between">
-                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="text-brand-teal">Referral discount ({referralDiscountPercent}%)</span>
                     <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}
@@ -905,7 +910,7 @@ function CreateOrder({ token }) {
                 {renderShopBreakdownLines()}
                 {referralDiscount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-brand-teal">Referral discount (10%)</span>
+                    <span className="text-brand-teal">Referral discount ({referralDiscountPercent}%)</span>
                     <span className="figure font-medium text-brand-teal">&minus;{formatNaira(referralDiscount)}</span>
                   </div>
                 )}

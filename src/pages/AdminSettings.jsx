@@ -51,6 +51,7 @@ function AdminSettings({ token }) {
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(false)
   const [loyaltyThresholdKg, setLoyaltyThresholdKg] = useState('')
   const [loyaltyDiscountPercent, setLoyaltyDiscountPercent] = useState('')
+  const [referralDiscountPercent, setReferralDiscountPercent] = useState('')
   const [sessionStartsAt, setSessionStartsAt] = useState('')
   const [sessionEndsAt, setSessionEndsAt] = useState('')
   const [semesterStartsAt, setSemesterStartsAt] = useState('')
@@ -97,6 +98,7 @@ function AdminSettings({ token }) {
         setLoyaltyEnabled(Boolean(data.loyalty_enabled))
         setLoyaltyThresholdKg(data.loyalty_threshold_kg || '')
         setLoyaltyDiscountPercent(data.loyalty_discount_percent || '')
+        setReferralDiscountPercent(data.referral_discount_percent || '')
         setSessionStartsAt(toDateInputValue(data.session_starts_at))
         setSessionEndsAt(toDateInputValue(data.session_ends_at))
         setSemesterStartsAt(toDateInputValue(data.semester_starts_at))
@@ -151,6 +153,7 @@ function AdminSettings({ token }) {
           loyalty_enabled: loyaltyEnabled,
           loyalty_threshold_kg: loyaltyThresholdKg || null,
           loyalty_discount_percent: loyaltyDiscountPercent || null,
+          referral_discount_percent: referralDiscountPercent || null,
           session_starts_at: sessionStartsAt || null,
           session_ends_at: sessionEndsAt || null,
           semester_starts_at: semesterStartsAt || null,
@@ -190,6 +193,7 @@ function AdminSettings({ token }) {
       setLoyaltyEnabled(Boolean(data.loyalty_enabled))
       setLoyaltyThresholdKg(data.loyalty_threshold_kg || '')
       setLoyaltyDiscountPercent(data.loyalty_discount_percent || '')
+      setReferralDiscountPercent(data.referral_discount_percent || '')
       setSessionStartsAt(toDateInputValue(data.session_starts_at))
       setSessionEndsAt(toDateInputValue(data.session_ends_at))
       setSemesterStartsAt(toDateInputValue(data.semester_starts_at))
@@ -561,12 +565,28 @@ function AdminSettings({ token }) {
               Referral Rewards
             </span>
             <span className="block text-sm text-slate-500">
-              When a new student registers with someone&apos;s Customer ID, the <strong>referrer</strong> gets
-              <strong> 10% off one gas order</strong>. When that student then pays for a gas order of
-              <strong> 3&nbsp;kg or more</strong>, the referrer gets <strong>another 10% off</strong> — once per
-              referred student. The student who used the code gets no discount. Applied automatically at
-              checkout; nothing to configure here.
+              When a new student registers with someone&apos;s Customer ID and that student then pays for a gas
+              order of <strong>3&nbsp;kg or more</strong>, the <strong>referrer</strong> gets a one-time coupon
+              worth the discount below off their next gas order — once per referred student. The student who
+              used the code gets no discount themselves. Applied automatically at checkout.
             </span>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label-text" htmlFor="referral-discount">Referrer's discount (%)</label>
+                <input
+                  id="referral-discount"
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  placeholder="e.g. 10"
+                  value={referralDiscountPercent}
+                  onChange={(e) => setReferralDiscountPercent(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="rounded-xl border border-slate-200 p-4">

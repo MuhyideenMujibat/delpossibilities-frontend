@@ -184,7 +184,9 @@ function OrderDetail({ token }) {
 
               {Number(order.referral_discount_amount) > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-brand-teal">Referral discount (10%)</span>
+                  <span className="text-brand-teal">
+                    Referral discount ({Math.round((order.referral_discount_amount / (order.kg * order.price_per_kg)) * 100)}%)
+                  </span>
                   <span className="figure font-medium text-brand-teal">&minus;{formatNaira(order.referral_discount_amount)}</span>
                 </div>
               )}

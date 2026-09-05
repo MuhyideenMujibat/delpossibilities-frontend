@@ -17,6 +17,7 @@ function Profile({ token }) {
   const [phone, setPhone] = useState('')
   const [cylinderImageUrl, setCylinderImageUrl] = useState(null)
   const [referralCoupons, setReferralCoupons] = useState(0)
+  const [referralDiscountPercent, setReferralDiscountPercent] = useState(10)
   const [customerId, setCustomerId] = useState(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -53,6 +54,13 @@ function Profile({ token }) {
     }
 
     fetchUser()
+
+    apiFetch('/price')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.referral_discount_percent) setReferralDiscountPercent(Number(data.referral_discount_percent))
+      })
+      .catch(() => {})
   }, [token])
 
   const handleCopyCustomerId = async () => {
@@ -207,9 +215,9 @@ function Profile({ token }) {
             {customerId && (
               <div className="mb-4">
                 <p className="text-sm text-slate-600 mb-2">
-                  Share your Customer ID with a new student. When they register with it you get{' '}
-                  <strong>10% off one gas order</strong> — and <strong>another 10% off</strong> once they pay for a gas
-                  order of <strong>3&nbsp;kg or more</strong>. Both apply automatically at your checkout.
+                  Share your Customer ID with a new student. Once they register with it and pay for a gas order of{' '}
+                  <strong>3&nbsp;kg or more</strong>, you get a one-time discount off your next gas order, applied
+                  automatically at your checkout.
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="input-field flex-1 font-mono text-sm bg-slate-50">{customerId}</code>
@@ -230,8 +238,9 @@ function Profile({ token }) {
 
             {referralCoupons > 0 && (
               <p className="alert-success">
-                You have {referralCoupons} referral discount{referralCoupons === 1 ? '' : 's'} available — 10% off your
-                next gas order{referralCoupons === 1 ? '' : 's'}, applied automatically at checkout.
+                You have {referralCoupons} referral discount{referralCoupons === 1 ? '' : 's'} available —{' '}
+                {referralDiscountPercent}% off your next gas order{referralCoupons === 1 ? '' : 's'}, applied
+                automatically at checkout.
               </p>
             )}
           </div>
